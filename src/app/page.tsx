@@ -464,7 +464,7 @@ export default function HomePage() {
                 <input
                   type="file"
                   id="file-upload"
-                  accept="image/*,video/*"
+                  accept="image/*,video/*,audio/*"
                   multiple
                   onChange={(e) => {
                     if (e.target.files) {
@@ -586,9 +586,7 @@ export default function HomePage() {
                     {currentEvent.maxFileSize && (
                       <li>• Her fotoğraf maksimum {currentEvent.maxFileSize}MB olabilir</li>
                     )}
-                    {currentEvent.allowedTypes && currentEvent.allowedTypes.length > 0 && (
-                      <li>• Sadece {currentEvent.allowedTypes.join(', ')} formatları kabul edilir</li>
-                    )}
+                    <li>• Tüm medya dosyaları kabul edilir (jpg, png, gif, mp4, vb.)</li>
                     {currentEvent.expiresAt && (
                       <li>• Etkinlik {formatDate(currentEvent.expiresAt)} tarihinde sona erer</li>
                     )}

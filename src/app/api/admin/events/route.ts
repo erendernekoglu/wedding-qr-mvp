@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       description,
       maxFiles,
       maxFileSize,
-      allowedTypes,
+      allowedTypes: allowedTypes || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'aac'],
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       isActive: true,
       createdBy: 'admin'

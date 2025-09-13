@@ -104,7 +104,6 @@ export default function AdminPage() {
     description: '',
     maxFiles: '',
     maxFileSize: '',
-    allowedTypes: '',
     expiresAt: ''
   })
 
@@ -248,13 +247,13 @@ export default function AdminPage() {
           ...newEvent,
           maxFiles: newEvent.maxFiles ? parseInt(newEvent.maxFiles) : undefined,
           maxFileSize: newEvent.maxFileSize ? parseInt(newEvent.maxFileSize) : undefined,
-          allowedTypes: newEvent.allowedTypes ? newEvent.allowedTypes.split(',').map(t => t.trim()) : undefined,
+          allowedTypes: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm'], // Tüm medya türleri
           expiresAt: newEvent.expiresAt || undefined
         })
       })
       
       if (response.ok) {
-        setNewEvent({ code: '', name: '', description: '', maxFiles: '', maxFileSize: '', allowedTypes: '', expiresAt: '' })
+        setNewEvent({ code: '', name: '', description: '', maxFiles: '', maxFileSize: '', expiresAt: '' })
         setShowCreateEvent(false)
         fetchEvents()
         alert('Etkinlik başarıyla oluşturuldu!')
@@ -695,16 +694,6 @@ export default function AdminPage() {
                         value={newEvent.maxFileSize}
                         onChange={(e) => setNewEvent({ ...newEvent, maxFileSize: e.target.value })}
                         placeholder="Sınırsız için boş bırakın"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">İzin Verilen Dosya Türleri</label>
-                      <input
-                        type="text"
-                        value={newEvent.allowedTypes}
-                        onChange={(e) => setNewEvent({ ...newEvent, allowedTypes: e.target.value })}
-                        placeholder="jpg,png,gif,mp4 (virgülle ayırın)"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                       />
                     </div>
