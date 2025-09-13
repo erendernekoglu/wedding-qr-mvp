@@ -243,10 +243,10 @@ export default function HomePage() {
             <Camera className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Düğün Fotoğraf Albümü
+            Momento
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Misafirlerinizin anılarını kolayca paylaşmasını sağlayın. 
+            Etkinliklerinizin anılarını kolayca paylaşın. 
             QR kod ile hızlı erişim, Google Drive ile güvenli saklama.
           </p>
           <div className="mt-4 inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
@@ -260,24 +260,24 @@ export default function HomePage() {
           <div className="max-w-md mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <h2 className="text-2xl font-semibold text-center mb-6">
-                Yeni Album Oluştur
+                Yeni Etkinlik Oluştur
               </h2>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Album Kodu
+                    Etkinlik Kodu
                   </label>
                   <input
                     type="text"
                     value={albumCode}
                     onChange={(e) => setAlbumCode(e.target.value.toUpperCase())}
-                    placeholder="örn: AYSE123"
+                    placeholder="örn: PARTY2024"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
                     maxLength={10}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Misafirler bu kodu kullanarak fotoğraf yükleyecek
+                    Katılımcılar bu kodu kullanarak fotoğraf yükleyecek
                   </p>
                 </div>
 
@@ -287,7 +287,7 @@ export default function HomePage() {
                     disabled={isCreating || !albumCode.trim()}
                     className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isCreating ? 'Oluşturuluyor...' : 'Album Oluştur'}
+                    {isCreating ? 'Oluşturuluyor...' : 'Etkinlik Oluştur'}
                   </button>
                   
                   <div className="relative">
@@ -316,10 +316,10 @@ export default function HomePage() {
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-semibold mb-2">
-                  Album Hazır! 🎉
+                  Etkinlik Hazır! 🎉
                 </h2>
                 <p className="text-gray-600">
-                  QR kodu paylaşarak misafirlerinizin fotoğraf yüklemesini sağlayın
+                  QR kodu paylaşarak katılımcıların fotoğraf yüklemesini sağlayın
                 </p>
               </div>
 
@@ -335,7 +335,7 @@ export default function HomePage() {
                     />
                   </div>
                   <p className="text-sm text-gray-500 mt-2">
-                    Album Kodu: <span className="font-mono font-semibold">{createdAlbum.code}</span>
+                    Etkinlik Kodu: <span className="font-mono font-semibold">{createdAlbum.code}</span>
                   </p>
                 </div>
 
@@ -343,7 +343,7 @@ export default function HomePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Album URL'si
+                      Etkinlik URL'si
                     </label>
                     <div className="flex">
                       <input
@@ -384,7 +384,7 @@ export default function HomePage() {
                     className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>Album Sayfasını Aç</span>
+                    <span>Etkinlik Sayfasını Aç</span>
                   </button>
                 </div>
               </div>
@@ -398,7 +398,7 @@ export default function HomePage() {
                     }}
                     className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
                   >
-                    Yeni Album Oluştur
+                    Yeni Etkinlik Oluştur
                   </button>
                 </div>
               </div>
@@ -434,7 +434,7 @@ export default function HomePage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Anında Erişim</h3>
             <p className="text-gray-600">
-              Tüm misafirler aynı anda fotoğraf yükleyebilir ve paylaşabilir.
+              Tüm katılımcılar aynı anda fotoğraf yükleyebilir ve paylaşabilir.
             </p>
           </div>
         </div>

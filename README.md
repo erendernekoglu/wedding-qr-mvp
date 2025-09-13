@@ -1,6 +1,6 @@
-# Wedding QR - Düğün Fotoğraf Paylaşım Platformu
+# Momento - Anı Paylaşım Uygulaması
 
-Modern düğünler için tasarlanmış profesyonel fotoğraf paylaşım platformu. Misafirlerinizin anılarını kolayca toplamasını sağlayın.
+Etkinliklerinizin anılarını kolayca paylaşın. Düğün, şirket etkinliği, arkadaş buluşması - her türlü etkinlik için tasarlanmış profesyonel fotoğraf paylaşım platformu.
 
 ## 🎯 Özellikler
 
@@ -9,17 +9,17 @@ Modern düğünler için tasarlanmış profesyonel fotoğraf paylaşım platform
 - **Gerçek Zamanlı Admin Paneli** - Yüklenen fotoğrafları canlı takip
 - **Mobil Optimize** - Tüm cihazlarda mükemmel deneyim
 - **Çoklu Dosya Desteği** - Toplu fotoğraf/video yükleme
-- **Özel Album Kodları** - Her düğün için benzersiz erişim
+- **Özel Etkinlik Kodları** - Her etkinlik için benzersiz erişim
 
 ## 🏢 İş Modeli
 
 ### Temel Plan - Ücretsiz
-- 1 album
+- 1 etkinlik
 - 50 fotoğraf limiti
 - Temel QR kod
 
 ### Premium Plan - ₺299/ay
-- Sınırsız album
+- Sınırsız etkinlik
 - Sınırsız fotoğraf
 - Özel branding
 - Gelişmiş analytics
@@ -55,7 +55,7 @@ Modern düğünler için tasarlanmış profesyonel fotoğraf paylaşım platform
 
 ### Q3 2025
 - [ ] AI fotoğraf düzenleme
-- [ ] Otomatik albüm oluşturma
+- [ ] Otomatik etkinlik oluşturma
 - [ ] API marketplace
 - [ ] Çoklu dil desteği
 
@@ -67,8 +67,8 @@ Modern düğünler için tasarlanmış profesyonel fotoğraf paylaşım platform
 
 ## 📄 Lisans
 
-Tüm hakları saklıdır. © 2025 Wedding QR. Ticari kullanım yasaktır.
+Tüm hakları saklıdır. © 2025 Momento. Ticari kullanım yasaktır.
 
 ---
 
-**Wedding QR** - Düğün anılarınızı dijitalleştirin.
+**Momento** - Etkinlik anılarınızı dijitalleştirin.
