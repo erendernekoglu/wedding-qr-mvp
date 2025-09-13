@@ -61,9 +61,9 @@ Modern düğünler için tasarlanmış profesyonel fotoğraf paylaşım platform
 
 ## 📞 İletişim
 
-- **Website**: [wedding-qr.com](https://wedding-qr.com)
-- **Email**: info@wedding-qr.com
-- **Telefon**: +90 (212) 555-0123
+- **Website**: --
+- **Email**: --
+- **Telefon**: --
 
 ## 📄 Lisans
 
