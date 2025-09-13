@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { Copy, Download, Share2, Camera, Users, Lock } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { getBetaAccessCode } from '@/lib/beta-users'
+import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
 
 export default function HomePage() {
   const [albumCode, setAlbumCode] = useState('')
@@ -122,19 +122,50 @@ export default function HomePage() {
     img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
   }
 
-  const handleBetaAccess = () => {
-    if (betaAccessCode === getBetaAccessCode()) {
-      setIsBetaAccessGranted(true)
-      localStorage.setItem('beta-access', 'true')
+  const handleBetaAccess = async () => {
+    if (!betaAccessCode.trim()) {
       toast({
-        title: 'Beta Erişimi Onaylandı!',
-        description: 'Artık uygulamayı kullanabilirsiniz.',
-        variant: 'success'
+        title: 'Kod Gerekli',
+        description: 'Lütfen beta erişim kodunu girin.',
+        variant: 'error'
       })
-    } else {
+      return
+    }
+
+    try {
+      const { valid, betaCode } = await validateBetaCode(betaAccessCode)
+      
+      if (valid) {
+        setIsBetaAccessGranted(true)
+        localStorage.setItem('beta-access', 'true')
+        localStorage.setItem('beta-code', betaAccessCode)
+        
+        // Kullanım istatistiği kaydet
+        await trackBetaUsage(
+          betaAccessCode,
+          'anonymous',
+          navigator.userAgent,
+          'unknown', // IP adresi server-side'da alınabilir
+          'beta_access'
+        )
+        
+        toast({
+          title: 'Beta Erişimi Onaylandı!',
+          description: `Hoş geldiniz! ${betaCode?.name || 'Beta'} kodunu kullanıyorsunuz.`,
+          variant: 'success'
+        })
+      } else {
+        toast({
+          title: 'Geçersiz Kod',
+          description: 'Beta erişim kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
+          variant: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('Beta access error:', error)
       toast({
-        title: 'Geçersiz Kod',
-        description: 'Lütfen doğru beta erişim kodunu girin.',
+        title: 'Hata',
+        description: 'Beta erişim kontrolü sırasında bir hata oluştu.',
         variant: 'error'
       })
     }

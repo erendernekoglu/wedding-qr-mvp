@@ -24,6 +24,30 @@ interface File {
   createdAt: string
 }
 
+interface BetaCode {
+  id: string
+  code: string
+  name: string
+  description?: string
+  isActive: boolean
+  maxUses?: number
+  currentUses: number
+  createdBy: string
+  createdAt: string
+  expiresAt?: string
+  lastUsedAt?: string
+}
+
+interface BetaUsage {
+  id: string
+  betaCodeId: string
+  userId: string
+  userAgent: string
+  ipAddress: string
+  usedAt: string
+  action: string
+}
+
 export const kvDb = {
   // Album operations
   album: {
@@ -100,6 +124,126 @@ export const kvDb = {
     findById: async (id: string) => {
       const file = await redis.get<File>(`file:${id}`)
       return file || null
+    }
+  },
+
+  // Beta Code operations
+  betaCode: {
+    create: async (data: Omit<BetaCode, 'id' | 'createdAt' | 'currentUses'>) => {
+      const id = Math.random().toString(36).substr(2, 9)
+      const now = new Date().toISOString()
+      const betaCode: BetaCode = {
+        ...data,
+        id,
+        createdAt: now,
+        currentUses: 0
+      }
+      
+      // Beta code'u code ile kaydet
+      await redis.set(`beta:${data.code}`, betaCode)
+      // Beta code'u id ile de kaydet
+      await redis.set(`beta:id:${id}`, betaCode)
+      // Aktif beta kodları listesine ekle
+      await redis.sadd('beta:codes:active', data.code)
+      
+      return betaCode
+    },
+    
+    findUnique: async (where: { code: string }) => {
+      const betaCode = await redis.get<BetaCode>(`beta:${where.code}`)
+      return betaCode || null
+    },
+    
+    findById: async (id: string) => {
+      const betaCode = await redis.get<BetaCode>(`beta:id:${id}`)
+      return betaCode || null
+    },
+    
+    findMany: async () => {
+      const codes = await redis.smembers('beta:codes:active')
+      if (!codes || codes.length === 0) {
+        return []
+      }
+      
+      const betaCodes = await Promise.all(
+        codes.map(async (code) => {
+          const betaCode = await redis.get<BetaCode>(`beta:${code}`)
+          return betaCode
+        })
+      )
+      
+      return betaCodes
+        .filter((code): code is BetaCode => code !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    },
+    
+    update: async (id: string, data: Partial<BetaCode>) => {
+      const existing = await redis.get<BetaCode>(`beta:id:${id}`)
+      if (!existing) return null
+      
+      const updated = { ...existing, ...data }
+      await redis.set(`beta:${existing.code}`, updated)
+      await redis.set(`beta:id:${id}`, updated)
+      
+      return updated
+    },
+    
+    delete: async (id: string) => {
+      const existing = await redis.get<BetaCode>(`beta:id:${id}`)
+      if (!existing) return false
+      
+      await redis.del(`beta:${existing.code}`)
+      await redis.del(`beta:id:${id}`)
+      await redis.srem('beta:codes:active', existing.code)
+      
+      return true
+    },
+    
+    incrementUsage: async (code: string, usageData: Omit<BetaUsage, 'id' | 'betaCodeId' | 'usedAt'>) => {
+      const betaCode = await redis.get<BetaCode>(`beta:${code}`)
+      if (!betaCode) return null
+      
+      // Usage kaydı oluştur
+      const usageId = Math.random().toString(36).substr(2, 9)
+      const usage: BetaUsage = {
+        ...usageData,
+        id: usageId,
+        betaCodeId: betaCode.id,
+        usedAt: new Date().toISOString()
+      }
+      
+      await redis.set(`beta:usage:${usageId}`, usage)
+      await redis.sadd(`beta:${betaCode.id}:usages`, usageId)
+      
+      // Beta code kullanım sayısını artır
+      const updated = {
+        ...betaCode,
+        currentUses: betaCode.currentUses + 1,
+        lastUsedAt: usage.usedAt
+      }
+      
+      await redis.set(`beta:${code}`, updated)
+      await redis.set(`beta:id:${betaCode.id}`, updated)
+      
+      return updated
+    },
+    
+    getUsageStats: async (betaCodeId: string) => {
+      const usageIds = await redis.smembers(`beta:${betaCodeId}:usages`)
+      if (!usageIds || usageIds.length === 0) {
+        return []
+      }
+      
+      const usages = await Promise.all(
+        usageIds.map(async (id) => {
+          const usage = await redis.get<BetaUsage>(`beta:usage:${id}`)
+          return usage
+        })
+      )
+      
+      return usages
+        .filter((usage): usage is BetaUsage => usage !== null)
+        .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
     }
   }
 }
