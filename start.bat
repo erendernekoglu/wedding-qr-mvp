@@ -4,7 +4,7 @@ echo    DUGUN FOTOGRAF ALBUMU - MVP
 echo ========================================
 echo.
 
-echo [1/4] Bağımlılıklar kontrol ediliyor...
+echo [1/3] Bağımlılıklar kontrol ediliyor...
 call npm install
 if %errorlevel% neq 0 (
     echo HATA: npm install başarısız!
@@ -13,7 +13,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [2/4] Environment dosyası kontrol ediliyor...
+echo [2/3] Environment dosyası kontrol ediliyor...
 if not exist .env (
     echo .env dosyası bulunamadı! env.example'dan kopyalanıyor...
     copy env.example .env
@@ -24,23 +24,7 @@ if not exist .env (
 )
 
 echo.
-echo [3/4] Veritabanı hazırlanıyor...
-call npx prisma migrate dev --name init
-if %errorlevel% neq 0 (
-    echo HATA: Veritabanı migration başarısız!
-    pause
-    exit /b 1
-)
-
-call npx prisma generate
-if %errorlevel% neq 0 (
-    echo HATA: Prisma generate başarısız!
-    pause
-    exit /b 1
-)
-
-echo.
-echo [4/4] Geliştirme sunucusu başlatılıyor...
+echo [3/3] Geliştirme sunucusu başlatılıyor...
 echo.
 echo ========================================
 echo    SERVER BAŞLATILIYOR...
