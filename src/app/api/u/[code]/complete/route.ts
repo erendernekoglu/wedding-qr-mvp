@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { memoryDb } from '@/lib/memory-db'
+import { kvDb } from '@/lib/kv-db'
 import { z } from 'zod'
 
 const completeRequestSchema = z.object({
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     const { fileId, name, size, mimeType } = validation.data
 
     // Album var mı kontrol et
-    const album = await memoryDb.album.findUnique({ code: params.code })
+    const album = await kvDb.album.findUnique({ code: params.code })
 
     if (!album) {
       return new Response(
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Dosyayı veritabanına kaydet
-    const file = await memoryDb.file.create({
+    const file = await kvDb.file.create({
       fileId,
       name,
       size,

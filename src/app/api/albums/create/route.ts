@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { memoryDb } from '@/lib/memory-db'
+import { kvDb } from '@/lib/kv-db'
 
 const createAlbumSchema = z.object({
   code: z.string().min(3).max(10).regex(/^[A-Z0-9]+$/, 'Sadece büyük harf ve rakam kullanılabilir')
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const { code } = validation.data
     
     // Kod kontrolü
-    const existingAlbum = await memoryDb.album.findUnique({ code })
+    const existingAlbum = await kvDb.album.findUnique({ code })
     if (existingAlbum) {
       return new Response(
         JSON.stringify({ error: 'Bu kod zaten kullanılıyor' }),
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Album oluştur
-    const album = await memoryDb.album.create({
+    const album = await kvDb.album.create({
       code,
       name: `Album ${code}`,
       isActive: true

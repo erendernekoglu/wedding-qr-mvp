@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
-import { memoryDb } from '@/lib/memory-db'
+import { kvDb } from '@/lib/kv-db'
 
 export async function GET(req: NextRequest, { params }: { params: { code: string } }) {
   try {
     const { code } = params
 
     // Album bilgilerini al
-    const album = await memoryDb.album.findUnique({ code })
+    const album = await kvDb.album.findUnique({ code })
 
     if (!album) {
       return new Response(
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     }
 
     // Dosyaları al
-    const files = await memoryDb.file.findMany({ albumId: album.id })
+    const files = await kvDb.file.findMany({ albumId: album.id })
 
     // İstatistikleri hesapla
     const fileCount = files.length

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getAccessToken } from '@/lib/google'
 import { ensureAlbumFolder, startResumable } from '@/lib/drive'
-import { memoryDb } from '@/lib/memory-db'
+import { kvDb } from '@/lib/kv-db'
 
 export async function POST(req: NextRequest, { params }: { params: { code: string } }) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     console.log(`[UPLOAD] Album: ${albumCode}, File: ${file.name}`)
 
     // Album var mı kontrol et
-    const album = await memoryDb.album.findUnique({ code: albumCode })
+    const album = await kvDb.album.findUnique({ code: albumCode })
 
     if (!album) {
       return new Response(
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Veritabanına kaydet
-    const dbFile = await memoryDb.file.create({
+    const dbFile = await kvDb.file.create({
       fileId,
       name: file.name,
       size: file.size,
