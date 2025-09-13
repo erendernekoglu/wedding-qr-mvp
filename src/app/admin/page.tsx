@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2, Lock } from 'lucide-react'
+import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2, Lock, Camera } from 'lucide-react'
 import Link from 'next/link'
 
 interface FileData {
@@ -45,6 +45,33 @@ interface BetaUsage {
   action: string
 }
 
+interface Event {
+  id: string
+  code: string
+  name: string
+  description?: string
+  isActive: boolean
+  maxFiles?: number
+  currentFiles: number
+  maxFileSize?: number
+  allowedTypes?: string[]
+  createdBy: string
+  createdAt: string
+  expiresAt?: string
+  lastUsedAt?: string
+}
+
+interface EventUsage {
+  id: string
+  eventId: string
+  userId: string
+  userAgent: string
+  ipAddress: string
+  usedAt: string
+  action: string
+  fileCount?: number
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [adminPassword, setAdminPassword] = useState('')
@@ -55,7 +82,7 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Beta kod yönetimi state'leri
-  const [activeTab, setActiveTab] = useState<'albums' | 'beta'>('albums')
+  const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events'>('albums')
   const [betaCodes, setBetaCodes] = useState<BetaCode[]>([])
   const [betaUsages, setBetaUsages] = useState<BetaUsage[]>([])
   const [showCreateBeta, setShowCreateBeta] = useState(false)
@@ -64,6 +91,20 @@ export default function AdminPage() {
     name: '',
     description: '',
     maxUses: '',
+    expiresAt: ''
+  })
+  
+  // Etkinlik yönetimi state'leri
+  const [events, setEvents] = useState<Event[]>([])
+  const [eventUsages, setEventUsages] = useState<EventUsage[]>([])
+  const [showCreateEvent, setShowCreateEvent] = useState(false)
+  const [newEvent, setNewEvent] = useState({
+    code: '',
+    name: '',
+    description: '',
+    maxFiles: '',
+    maxFileSize: '',
+    allowedTypes: '',
     expiresAt: ''
   })
 
@@ -186,6 +227,80 @@ export default function AdminPage() {
     }
   }
 
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('/api/admin/events')
+      if (response.ok) {
+        const data = await response.json()
+        setEvents(data.events)
+      }
+    } catch (err) {
+      console.error('Events fetch error:', err)
+    }
+  }
+
+  const createEvent = async () => {
+    try {
+      const response = await fetch('/api/admin/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newEvent,
+          maxFiles: newEvent.maxFiles ? parseInt(newEvent.maxFiles) : undefined,
+          maxFileSize: newEvent.maxFileSize ? parseInt(newEvent.maxFileSize) : undefined,
+          allowedTypes: newEvent.allowedTypes ? newEvent.allowedTypes.split(',').map(t => t.trim()) : undefined,
+          expiresAt: newEvent.expiresAt || undefined
+        })
+      })
+      
+      if (response.ok) {
+        setNewEvent({ code: '', name: '', description: '', maxFiles: '', maxFileSize: '', allowedTypes: '', expiresAt: '' })
+        setShowCreateEvent(false)
+        fetchEvents()
+      }
+    } catch (err) {
+      console.error('Create event error:', err)
+    }
+  }
+
+  const toggleEvent = async (id: string, isActive: boolean) => {
+    try {
+      await fetch(`/api/admin/events/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive })
+      })
+      fetchEvents()
+    } catch (err) {
+      console.error('Toggle event error:', err)
+    }
+  }
+
+  const deleteEvent = async (id: string) => {
+    if (!confirm('Bu etkinliği silmek istediğinizden emin misiniz?')) return
+    
+    try {
+      await fetch(`/api/admin/events/${id}`, {
+        method: 'DELETE'
+      })
+      fetchEvents()
+    } catch (err) {
+      console.error('Delete event error:', err)
+    }
+  }
+
+  const fetchEventUsage = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/usage`)
+      if (response.ok) {
+        const data = await response.json()
+        setEventUsages(data.usages)
+      }
+    } catch (err) {
+      console.error('Event usage fetch error:', err)
+    }
+  }
+
   useEffect(() => {
     // Admin authentication kontrolü
     const adminAuth = localStorage.getItem('admin-auth')
@@ -193,6 +308,7 @@ export default function AdminPage() {
       setIsAuthenticated(true)
       fetchAlbums()
       fetchBetaCodes()
+      fetchEvents()
     }
   }, [])
 
@@ -372,6 +488,17 @@ export default function AdminPage() {
               Etkinlik Yönetimi
             </button>
             <button
+              onClick={() => setActiveTab('events')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'events'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Camera className="w-4 h-4 inline mr-2" />
+              Etkinlik Kodları
+            </button>
+            <button
               onClick={() => setActiveTab('beta')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'beta'
@@ -496,6 +623,198 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        ) : activeTab === 'events' ? (
+          <>
+            {/* Etkinlik Kodları Yönetimi */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Etkinlik Kodları</h2>
+                <button
+                  onClick={() => setShowCreateEvent(true)}
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Yeni Etkinlik Kodu</span>
+                </button>
+              </div>
+
+              {/* Etkinlik Oluşturma Formu */}
+              {showCreateEvent && (
+                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Yeni Etkinlik Kodu Oluştur</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Kod *</label>
+                      <input
+                        type="text"
+                        value={newEvent.code}
+                        onChange={(e) => setNewEvent({ ...newEvent, code: e.target.value.toUpperCase() })}
+                        placeholder="Örn: DUGUN2024"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">İsim *</label>
+                      <input
+                        type="text"
+                        value={newEvent.name}
+                        onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                        placeholder="Örn: Ahmet & Ayşe Düğünü"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+                      <textarea
+                        value={newEvent.description}
+                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        placeholder="Etkinlik hakkında kısa açıklama..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Maksimum Dosya Sayısı</label>
+                      <input
+                        type="number"
+                        value={newEvent.maxFiles}
+                        onChange={(e) => setNewEvent({ ...newEvent, maxFiles: e.target.value })}
+                        placeholder="Sınırsız için boş bırakın"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Maksimum Dosya Boyutu (MB)</label>
+                      <input
+                        type="number"
+                        value={newEvent.maxFileSize}
+                        onChange={(e) => setNewEvent({ ...newEvent, maxFileSize: e.target.value })}
+                        placeholder="Sınırsız için boş bırakın"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">İzin Verilen Dosya Türleri</label>
+                      <input
+                        type="text"
+                        value={newEvent.allowedTypes}
+                        onChange={(e) => setNewEvent({ ...newEvent, allowedTypes: e.target.value })}
+                        placeholder="jpg,png,gif,mp4 (virgülle ayırın)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Son Kullanma Tarihi</label>
+                      <input
+                        type="datetime-local"
+                        value={newEvent.expiresAt}
+                        onChange={(e) => setNewEvent({ ...newEvent, expiresAt: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={() => setShowCreateEvent(false)}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                      İptal
+                    </button>
+                    <button
+                      onClick={createEvent}
+                      disabled={!newEvent.code || !newEvent.name}
+                      className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Oluştur
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Etkinlik Listesi */}
+              <div className="space-y-4">
+                {events.map((event) => (
+                  <div key={event.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {event.code}
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            event.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {event.isActive ? 'Aktif' : 'Pasif'}
+                          </span>
+                        </div>
+                        {event.description && (
+                          <p className="text-gray-600 text-sm mb-2">{event.description}</p>
+                        )}
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <span>Dosya: {event.currentFiles}{event.maxFiles ? `/${event.maxFiles}` : ''}</span>
+                          <span>Oluşturulma: {formatDate(event.createdAt)}</span>
+                          {event.lastUsedAt && (
+                            <span>Son Kullanım: {formatDate(event.lastUsedAt)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => fetchEventUsage(event.id)}
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                          <span>İstatistik</span>
+                        </button>
+                        <button
+                          onClick={() => toggleEvent(event.id, !event.isActive)}
+                          className={`inline-flex items-center space-x-1 px-3 py-1.5 text-sm rounded-md transition-colors ${
+                            event.isActive
+                              ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span>{event.isActive ? 'Pasifleştir' : 'Aktifleştir'}</span>
+                        </button>
+                        <button
+                          onClick={() => deleteEvent(event.id)}
+                          className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Sil</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Etkinlik Kullanım İstatistikleri */}
+            {eventUsages.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Kullanım İstatistikleri</h3>
+                <div className="space-y-2">
+                  {eventUsages.map((usage) => (
+                    <div key={usage.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">{usage.action}</span>
+                        <span className="text-xs text-gray-500 ml-2">{usage.userId}</span>
+                        {usage.fileCount && (
+                          <span className="text-xs text-blue-600 ml-2">({usage.fileCount} dosya)</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {formatDate(usage.usedAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <>
             {/* Beta Kod Yönetimi */}

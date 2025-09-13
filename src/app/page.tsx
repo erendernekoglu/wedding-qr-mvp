@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Copy, Download, Share2, Camera, Users, Lock } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
+import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
 
 export default function HomePage() {
   const [albumCode, setAlbumCode] = useState('')
@@ -13,6 +14,9 @@ export default function HomePage() {
   const [betaAccessCode, setBetaAccessCode] = useState('')
   const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [eventCode, setEventCode] = useState('')
+  const [isEventAccessGranted, setIsEventAccessGranted] = useState(false)
+  const [currentEvent, setCurrentEvent] = useState<any>(null)
   const { toast } = useToast()
   const router = useRouter()
 
@@ -24,6 +28,14 @@ export default function HomePage() {
     const storedAccess = localStorage.getItem('beta-access')
     if (storedAccess === 'true') {
       setIsBetaAccessGranted(true)
+    }
+    
+    // Event access kontrolü
+    const storedEventAccess = localStorage.getItem('event-access')
+    const storedEventCode = localStorage.getItem('event-code')
+    if (storedEventAccess === 'true' && storedEventCode) {
+      setIsEventAccessGranted(true)
+      setEventCode(storedEventCode)
     }
   }, [])
 
@@ -185,6 +197,67 @@ export default function HomePage() {
     }
   }
 
+  const handleEventAccess = async () => {
+    if (!eventCode.trim()) {
+      toast({
+        title: 'Kod Gerekli',
+        description: 'Lütfen etkinlik kodunu girin.',
+        variant: 'error'
+      })
+      return
+    }
+
+    try {
+      const response = await fetch('/api/validate-event-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: eventCode })
+      })
+      
+      if (!response.ok) {
+        throw new Error('API hatası')
+      }
+      
+      const { valid, event, error } = await response.json()
+      
+      if (valid) {
+        setIsEventAccessGranted(true)
+        setCurrentEvent(event)
+        localStorage.setItem('event-access', 'true')
+        localStorage.setItem('event-code', eventCode)
+        
+        // Kullanım istatistiği kaydet
+        await trackEventUsage(
+          eventCode,
+          'anonymous',
+          navigator.userAgent,
+          'unknown',
+          'event_access',
+          0
+        )
+        
+        toast({
+          title: 'Etkinlik Erişimi Onaylandı!',
+          description: `Hoş geldiniz! ${event?.name || 'Etkinlik'} kodunu kullanıyorsunuz.`,
+          variant: 'success'
+        })
+      } else {
+        toast({
+          title: 'Geçersiz Kod',
+          description: error || 'Etkinlik kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
+          variant: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('Event access error:', error)
+      toast({
+        title: 'Hata',
+        description: 'Etkinlik erişim kontrolü sırasında bir hata oluştu.',
+        variant: 'error'
+      })
+    }
+  }
+
   // Client-side hydration kontrolü
   if (!isClient) {
     return (
@@ -244,6 +317,53 @@ export default function HomePage() {
     )
   }
 
+  // Etkinlik erişim kontrolü
+  if (!isEventAccessGranted) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <Camera className="w-8 h-8 text-blue-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Etkinlik Erişimi
+              </h1>
+              <p className="text-gray-600 mb-6">
+                Etkinliğe katılmak için etkinlik kodunu girin.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    value={eventCode}
+                    onChange={(e) => setEventCode(e.target.value.toUpperCase())}
+                    placeholder="Etkinlik Kodu"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent text-center font-mono"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleEventAccess}
+                  disabled={!eventCode.trim()}
+                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Etkinliğe Katıl
+                </button>
+                
+                <p className="text-xs text-gray-500">
+                  Etkinlik kodu için organizatör ile iletişime geçin.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
       <div className="container mx-auto px-4 py-8">
@@ -253,15 +373,14 @@ export default function HomePage() {
             <Camera className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Momento
+            {currentEvent?.name || 'Momento'}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Etkinliklerinizin anılarını kolayca paylaşın. 
-            QR kod ile hızlı erişim, Google Drive ile güvenli saklama.
+            {currentEvent?.description || 'Etkinliklerinizin anılarını kolayca paylaşın. QR kod ile hızlı erişim, Google Drive ile güvenli saklama.'}
           </p>
-          <div className="mt-4 inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
-            <Lock className="w-4 h-4 mr-1" />
-            Beta Sürümü
+          <div className="mt-4 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+            <Camera className="w-4 h-4 mr-1" />
+            Etkinlik: {currentEvent?.code}
           </div>
         </header>
 

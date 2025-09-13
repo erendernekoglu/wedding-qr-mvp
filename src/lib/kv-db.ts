@@ -48,6 +48,33 @@ interface BetaUsage {
   action: string
 }
 
+interface Event {
+  id: string
+  code: string
+  name: string
+  description?: string
+  isActive: boolean
+  maxFiles?: number
+  currentFiles: number
+  maxFileSize?: number
+  allowedTypes?: string[]
+  createdBy: string
+  createdAt: string
+  expiresAt?: string
+  lastUsedAt?: string
+}
+
+interface EventUsage {
+  id: string
+  eventId: string
+  userId: string
+  userAgent: string
+  ipAddress: string
+  usedAt: string
+  action: string
+  fileCount?: number
+}
+
 export const kvDb = {
   // Album operations
   album: {
@@ -243,6 +270,126 @@ export const kvDb = {
       
       return usages
         .filter((usage): usage is BetaUsage => usage !== null)
+        .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
+    }
+  },
+
+  // Event operations
+  event: {
+    create: async (data: Omit<Event, 'id' | 'createdAt' | 'currentFiles'>) => {
+      const id = Math.random().toString(36).substr(2, 9)
+      const now = new Date().toISOString()
+      const event: Event = {
+        ...data,
+        id,
+        createdAt: now,
+        currentFiles: 0
+      }
+      
+      // Event'i code ile kaydet
+      await redis.set(`event:${data.code}`, event)
+      // Event'i id ile de kaydet
+      await redis.set(`event:id:${id}`, event)
+      // Aktif eventleri listesine ekle
+      await redis.sadd('events:active', data.code)
+      
+      return event
+    },
+    
+    findUnique: async (where: { code: string }) => {
+      const event = await redis.get<Event>(`event:${where.code}`)
+      return event || null
+    },
+    
+    findById: async (id: string) => {
+      const event = await redis.get<Event>(`event:id:${id}`)
+      return event || null
+    },
+    
+    findMany: async () => {
+      const codes = await redis.smembers('events:active')
+      if (!codes || codes.length === 0) {
+        return []
+      }
+      
+      const events = await Promise.all(
+        codes.map(async (code) => {
+          const event = await redis.get<Event>(`event:${code}`)
+          return event
+        })
+      )
+      
+      return events
+        .filter((event): event is Event => event !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    },
+    
+    update: async (id: string, data: Partial<Event>) => {
+      const existing = await redis.get<Event>(`event:id:${id}`)
+      if (!existing) return null
+      
+      const updated = { ...existing, ...data }
+      await redis.set(`event:${existing.code}`, updated)
+      await redis.set(`event:id:${id}`, updated)
+      
+      return updated
+    },
+    
+    delete: async (id: string) => {
+      const existing = await redis.get<Event>(`event:id:${id}`)
+      if (!existing) return false
+      
+      await redis.del(`event:${existing.code}`)
+      await redis.del(`event:id:${id}`)
+      await redis.srem('events:active', existing.code)
+      
+      return true
+    },
+    
+    incrementFileCount: async (code: string, usageData: Omit<EventUsage, 'id' | 'eventId' | 'usedAt'>) => {
+      const event = await redis.get<Event>(`event:${code}`)
+      if (!event) return null
+      
+      // Usage kaydı oluştur
+      const usageId = Math.random().toString(36).substr(2, 9)
+      const usage: EventUsage = {
+        ...usageData,
+        id: usageId,
+        eventId: event.id,
+        usedAt: new Date().toISOString()
+      }
+      
+      await redis.set(`event:usage:${usageId}`, usage)
+      await redis.sadd(`event:${event.id}:usages`, usageId)
+      
+      // Event dosya sayısını artır
+      const updated = {
+        ...event,
+        currentFiles: event.currentFiles + (usageData.fileCount || 1),
+        lastUsedAt: usage.usedAt
+      }
+      
+      await redis.set(`event:${code}`, updated)
+      await redis.set(`event:id:${event.id}`, updated)
+      
+      return updated
+    },
+    
+    getUsageStats: async (eventId: string) => {
+      const usageIds = await redis.smembers(`event:${eventId}:usages`)
+      if (!usageIds || usageIds.length === 0) {
+        return []
+      }
+      
+      const usages = await Promise.all(
+        usageIds.map(async (id) => {
+          const usage = await redis.get<EventUsage>(`event:usage:${id}`)
+          return usage
+        })
+      )
+      
+      return usages
+        .filter((usage): usage is EventUsage => usage !== null)
         .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
     }
   }
