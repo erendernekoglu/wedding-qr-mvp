@@ -32,9 +32,21 @@ export default function HomePage() {
     // Event access kontrolü
     const storedEventAccess = localStorage.getItem('event-access')
     const storedEventCode = localStorage.getItem('event-code')
+    const storedEventData = localStorage.getItem('event-data')
+    
     if (storedEventAccess === 'true' && storedEventCode) {
       setIsEventAccessGranted(true)
       setEventCode(storedEventCode)
+      
+      // Kaydedilmiş etkinlik verisini yükle
+      if (storedEventData) {
+        try {
+          const eventData = JSON.parse(storedEventData)
+          setCurrentEvent(eventData)
+        } catch (error) {
+          console.error('Event data parse error:', error)
+        }
+      }
     }
   }, [])
 
@@ -76,6 +88,69 @@ export default function HomePage() {
       })
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleLogout = () => {
+    // Tüm localStorage verilerini temizle
+    localStorage.removeItem('beta-access')
+    localStorage.removeItem('event-access')
+    localStorage.removeItem('event-code')
+    localStorage.removeItem('event-data')
+    
+    // State'leri sıfırla
+    setIsBetaAccessGranted(false)
+    setIsEventAccessGranted(false)
+    setCurrentEvent(null)
+    setEventCode('')
+    setBetaAccessCode('')
+    setUploadedFile(null)
+    
+    toast({
+      title: 'Çıkış Yapıldı',
+      description: 'Tüm oturum verileri temizlendi',
+      variant: 'info'
+    })
+  }
+
+  const downloadQR = () => {
+    if (!currentEvent) return
+    
+    try {
+      const svg = document.querySelector('#qr-code svg')
+      if (!svg) return
+
+      const svgData = new XMLSerializer().serializeToString(svg)
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx?.drawImage(img, 0, 0)
+        
+        const pngFile = canvas.toDataURL('image/png')
+        const downloadLink = document.createElement('a')
+        downloadLink.download = `etkinlik-${currentEvent.code}-qr.png`
+        downloadLink.href = pngFile
+        downloadLink.click()
+        
+        toast({
+          title: 'QR Kod İndirildi!',
+          description: 'QR kod başarıyla indirildi',
+          variant: 'success'
+        })
+      }
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
+    } catch (error) {
+      console.error('QR download error:', error)
+      toast({
+        title: 'Hata',
+        description: 'QR kod indirilemedi',
+        variant: 'error'
+      })
     }
   }
 
@@ -168,8 +243,12 @@ export default function HomePage() {
       if (valid) {
         setIsEventAccessGranted(true)
         setCurrentEvent(event)
+        setEventCode(eventCode)
+        
+        // localStorage'a kaydet
         localStorage.setItem('event-access', 'true')
         localStorage.setItem('event-code', eventCode)
+        localStorage.setItem('event-data', JSON.stringify(event))
         
         // Kullanım istatistiği kaydet
         await trackEventUsage(
@@ -402,6 +481,99 @@ export default function HomePage() {
                   {isUploading ? 'Yükleniyor...' : 'Fotoğraf Seç'}
                 </label>
               </div>
+
+              {/* QR Kod ve Paylaşım */}
+              {currentEvent && (
+                <div className="mt-8 grid md:grid-cols-2 gap-8">
+                  {/* QR Kod */}
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Etkinlik QR Kodu</h3>
+                    <div id="qr-code" className="inline-block p-4 bg-white rounded-xl shadow-lg border">
+                      <QRCodeSVG
+                        value={`${window.location.origin}/u/${currentEvent.code}`}
+                        size={200}
+                        level="M"
+                        includeMargin={true}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Etkinlik Kodu: <span className="font-mono font-semibold">{currentEvent.code}</span>
+                    </p>
+                    <button
+                      onClick={downloadQR}
+                      className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>QR Kod İndir</span>
+                    </button>
+                  </div>
+
+                  {/* Paylaşım Bilgileri */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Paylaşım Bilgileri</h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Etkinlik URL'si
+                      </label>
+                      <div className="flex">
+                        <input
+                          type="text"
+                          value={`${window.location.origin}/u/${currentEvent.code}`}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm font-mono"
+                        />
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/u/${currentEvent.code}`)
+                            toast({
+                              title: 'Kopyalandı!',
+                              description: 'URL panoya kopyalandı',
+                              variant: 'success'
+                            })
+                          }}
+                          className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200 transition-colors"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/u/${currentEvent.code}`)
+                          toast({
+                            title: 'Kopyalandı!',
+                            description: 'URL panoya kopyalandı',
+                            variant: 'success'
+                          })
+                        }}
+                        className="flex items-center justify-center space-x-2 py-2 px-4 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                      >
+                        <Copy className="w-4 h-4" />
+                        <span>URL Kopyala</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => window.open(`${window.location.origin}/u/${currentEvent.code}`, '_blank')}
+                        className="flex items-center justify-center space-x-2 py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span>Etkinlik Sayfası</span>
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Çıkış Yap</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Etkinlik Kuralları */}
               {currentEvent && (
