@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2, Lock, Camera } from 'lucide-react'
 import Link from 'next/link'
+import EventTemplateSelector from '@/components/EventTemplateSelector'
+import { BulkActionModal } from '@/components/BulkOperations'
 
 interface FileData {
   id: string
@@ -83,6 +85,10 @@ export default function AdminPage() {
   
   // Beta kod yönetimi state'leri
   const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events'>('albums')
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [bulkAction, setBulkAction] = useState('')
   const [betaCodes, setBetaCodes] = useState<BetaCode[]>([])
   const [betaUsages, setBetaUsages] = useState<BetaUsage[]>([])
   const [showCreateBeta, setShowCreateBeta] = useState(false)
@@ -264,6 +270,61 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Create event error:', err)
       alert(`Hata: ${err instanceof Error ? err.message : 'Bilinmeyen hata'}`)
+    }
+  }
+
+  // Bulk operations handlers
+  const handleSelectAllEvents = (selected: boolean) => {
+    if (selected) {
+      setSelectedEvents(events.map(event => event.code))
+    } else {
+      setSelectedEvents([])
+    }
+  }
+
+  const handleBulkAction = async (action: string, eventIds: string[]) => {
+    try {
+      const response = await fetch('/api/admin/events/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, eventIds })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(result.message)
+        setSelectedEvents([])
+        fetchEvents() // Refresh events list
+      } else {
+        alert('Hata: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Bulk action error:', error)
+      alert('Bulk işlem sırasında hata oluştu')
+    }
+  }
+
+  const handleTemplateSelect = async (template: any) => {
+    try {
+      const response = await fetch('/api/admin/events/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: template.id })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert('Etkinlik şablondan oluşturuldu: ' + result.event.name)
+        setShowTemplateSelector(false)
+        fetchEvents() // Refresh events list
+      } else {
+        alert('Hata: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Template create error:', error)
+      alert('Şablon oluşturma sırasında hata oluştu')
     }
   }
 
@@ -633,13 +694,22 @@ export default function AdminPage() {
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Etkinlik Kodları</h2>
-                <button
-                  onClick={() => setShowCreateEvent(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Yeni Etkinlik Kodu</span>
-                </button>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setShowTemplateSelector(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Şablondan Oluştur</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateEvent(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Yeni Etkinlik Kodu</span>
+                  </button>
+                </div>
               </div>
 
               {/* Etkinlik Oluşturma Formu */}
@@ -979,6 +1049,27 @@ export default function AdminPage() {
           </>
         )}
       </main>
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <EventTemplateSelector
+          onSelectTemplate={handleTemplateSelect}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
+
+      {/* Bulk Action Modal */}
+      {showBulkModal && (
+        <BulkActionModal
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          onConfirm={() => handleBulkAction(bulkAction, selectedEvents)}
+          action={bulkAction}
+          itemCount={selectedEvents.length}
+          itemType="etkinlik"
+          isDestructive={bulkAction === 'delete'}
+        />
+      )}
     </div>
   )
 }
