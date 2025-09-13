@@ -34,6 +34,24 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       )
     }
 
+    // Environment variables kontrol et
+    const requiredEnvs = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'DRIVE_ROOT_FOLDER_ID']
+    const missingEnvs = requiredEnvs.filter(env => !process.env[env])
+    
+    if (missingEnvs.length > 0) {
+      console.log('[UPLOAD] Missing environment variables:', missingEnvs)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Configuration error', 
+          details: `Missing environment variables: ${missingEnvs.join(', ')}` 
+        }),
+        {
+          status: 500,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
     // Google Drive'a upload
     const accessToken = await getAccessToken()
     const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
