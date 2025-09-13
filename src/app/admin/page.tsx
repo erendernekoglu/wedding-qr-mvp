@@ -418,10 +418,10 @@ export default function AdminPage() {
       }).reverse()
 
       const dailyStats = last7Days.map(date => {
-        const dayUsages = betaUsages.filter(usage => 
-          usage.createdAt.startsWith(date)
+        const dayUsages = betaUsages.filter(usage =>
+          usage.usedAt.startsWith(date)
         )
-        const dayEvents = events.filter(event => 
+        const dayEvents = events.filter(event =>
           event.createdAt.startsWith(date)
         )
         
@@ -447,7 +447,7 @@ export default function AdminPage() {
 
       // En popüler beta kodları
       const betaCodeStats = betaCodes.map(betaCode => {
-        const usages = betaUsages.filter(usage => usage.betaCode === betaCode.code)
+        const usages = betaUsages.filter(usage => usage.betaCodeId === betaCode.id)
         return {
           code: betaCode.code,
           name: betaCode.name,
@@ -466,12 +466,15 @@ export default function AdminPage() {
 
       // Son aktiviteler
       const recentActivity = [
-        ...betaUsages.slice(-5).map(usage => ({
-          type: 'beta_access',
-          message: `${usage.betaCode} beta koduna erişim`,
-          timestamp: usage.createdAt,
-          user: usage.userId
-        })),
+        ...betaUsages.slice(-5).map(usage => {
+          const betaCode = betaCodes.find(bc => bc.id === usage.betaCodeId)
+          return {
+            type: 'beta_access',
+            message: `${betaCode?.code || 'Bilinmeyen'} beta koduna erişim`,
+            timestamp: usage.usedAt,
+            user: usage.userId
+          }
+        }),
         ...events.slice(-5).map(event => ({
           type: 'event_created',
           message: `${event.name} etkinliği oluşturuldu`,
