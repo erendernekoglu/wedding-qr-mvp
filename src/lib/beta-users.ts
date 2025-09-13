@@ -34,6 +34,12 @@ export const validateBetaCode = async (code: string): Promise<{ valid: boolean; 
 // Kullanım istatistiği kaydet
 export const trackBetaUsage = async (code: string, userId: string, userAgent: string, ipAddress: string, action: string) => {
   try {
+    // Redis bağlantısını kontrol et
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      console.warn('Redis credentials not found, skipping usage tracking')
+      return
+    }
+    
     await kvDb.betaCode.incrementUsage(code, {
       userId,
       userAgent,
@@ -42,6 +48,7 @@ export const trackBetaUsage = async (code: string, userId: string, userAgent: st
     })
   } catch (error) {
     console.error('Beta usage tracking error:', error)
+    // Hata durumunda uygulamanın çalışmasını engelleme
   }
 }
 

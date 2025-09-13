@@ -34,6 +34,12 @@ export const validateEventCode = async (code: string): Promise<{ valid: boolean;
 // Kullanım istatistiği kaydet
 export const trackEventUsage = async (code: string, userId: string, userAgent: string, ipAddress: string, action: string, fileCount: number = 1) => {
   try {
+    // Redis bağlantısını kontrol et
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      console.warn('Redis credentials not found, skipping usage tracking')
+      return
+    }
+    
     await kvDb.event.incrementFileCount(code, {
       userId,
       userAgent,
@@ -43,5 +49,6 @@ export const trackEventUsage = async (code: string, userId: string, userAgent: s
     })
   } catch (error) {
     console.error('Event usage tracking error:', error)
+    // Hata durumunda uygulamanın çalışmasını engelleme
   }
 }
