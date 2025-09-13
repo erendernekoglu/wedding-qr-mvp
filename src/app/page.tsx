@@ -642,8 +642,9 @@ export default function HomePage() {
 
                 <button
                   onClick={() => {
-                    // Yeni fotoğraf yükleme için sayfayı yenile
-                    window.location.reload()
+                    // Sadece upload state'ini sıfırla, sayfayı yenileme
+                    setUploadedFile(null)
+                    setIsUploading(false)
                   }}
                   className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors"
                 >
