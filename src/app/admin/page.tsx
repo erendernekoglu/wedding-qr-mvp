@@ -1,7 +1,7 @@
 'use client'
-import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2, Lock } from 'lucide-react'
 import Link from 'next/link'
 
 interface FileData {
@@ -46,14 +46,16 @@ interface BetaUsage {
 }
 
 export default function AdminPage() {
-  const { code } = useParams<{ code: string }>()
-  const [album, setAlbum] = useState<AlbumData | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [adminPassword, setAdminPassword] = useState('')
+  const [albums, setAlbums] = useState<AlbumData[]>([])
+  const [selectedAlbum, setSelectedAlbum] = useState<AlbumData | null>(null)
   const [files, setFiles] = useState<FileData[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   // Beta kod yönetimi state'leri
-  const [activeTab, setActiveTab] = useState<'album' | 'beta'>('album')
+  const [activeTab, setActiveTab] = useState<'albums' | 'beta'>('albums')
   const [betaCodes, setBetaCodes] = useState<BetaCode[]>([])
   const [betaUsages, setBetaUsages] = useState<BetaUsage[]>([])
   const [showCreateBeta, setShowCreateBeta] = useState(false)
@@ -65,10 +67,37 @@ export default function AdminPage() {
     expiresAt: ''
   })
 
-  const fetchAlbumData = async () => {
+  // Admin şifresi kontrolü
+  const ADMIN_PASSWORD = 'admin2024' // Production'da environment variable olmalı
+
+  const handleAdminLogin = () => {
+    if (adminPassword === ADMIN_PASSWORD) {
+      setIsAuthenticated(true)
+      localStorage.setItem('admin-auth', 'true')
+      fetchAlbums()
+      fetchBetaCodes()
+    } else {
+      alert('Geçersiz admin şifresi')
+    }
+  }
+
+  const fetchAlbums = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/${code}`)
+      // Tüm albumleri getir (basit implementasyon)
+      // Gerçek uygulamada daha gelişmiş album listesi olmalı
+      setAlbums([])
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchAlbumData = async (albumCode: string) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/admin/${albumCode}`)
       
       if (!response.ok) {
         const errorData = await response.json()
@@ -76,7 +105,7 @@ export default function AdminPage() {
       }
 
       const data = await response.json()
-      setAlbum(data.album)
+      setSelectedAlbum(data.album)
       setFiles(data.files)
     } catch (err: any) {
       setError(err.message)
@@ -158,11 +187,14 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (code) {
-      fetchAlbumData()
+    // Admin authentication kontrolü
+    const adminAuth = localStorage.getItem('admin-auth')
+    if (adminAuth === 'true') {
+      setIsAuthenticated(true)
+      fetchAlbums()
       fetchBetaCodes()
     }
-  }, [code])
+  }, [])
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
@@ -194,7 +226,6 @@ export default function AdminPage() {
 
   const downloadFile = async (file: FileData) => {
     try {
-      // Google Drive'dan dosya indirme linki al
       const response = await fetch(`/api/files/${file.fileId}/download`)
       if (!response.ok) throw new Error('Dosya indirilemedi')
       
@@ -210,6 +241,59 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Download error:', err)
     }
+  }
+
+  // Admin authentication ekranı
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+              <Lock className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Admin Paneli
+            </h1>
+            <p className="text-gray-600">
+              Devam etmek için admin şifresini girin
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Admin Şifresi
+              </label>
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                placeholder="Admin şifresini girin"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+              />
+            </div>
+            
+            <button
+              onClick={handleAdminLogin}
+              className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              Giriş Yap
+            </button>
+            
+            <div className="text-center">
+              <Link
+                href="/"
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                ← Ana Sayfaya Dön
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
@@ -230,32 +314,13 @@ export default function AdminPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
             <h2 className="text-lg font-semibold text-red-800 mb-2">Hata</h2>
             <p className="text-red-600 mb-4">{error}</p>
-            <Link
-              href="/"
-              className="inline-flex items-center space-x-2 text-brand-primary hover:text-brand-primary/80"
+            <button
+              onClick={() => setError(null)}
+              className="text-brand-primary hover:text-brand-primary/80"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Ana Sayfaya Dön</span>
-            </Link>
+              Tekrar Dene
+            </button>
           </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!album) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Album Bulunamadı</h2>
-          <p className="text-gray-600 mb-4">Bu album kodu geçersiz veya silinmiş olabilir.</p>
-          <Link
-            href="/"
-            className="inline-flex items-center space-x-2 text-brand-primary hover:text-brand-primary/80"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Ana Sayfaya Dön</span>
-          </Link>
         </div>
       </div>
     )
@@ -282,11 +347,13 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center space-x-2">
               <button
-                onClick={activeTab === 'album' ? fetchAlbumData : fetchBetaCodes}
-                className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                onClick={() => {
+                  localStorage.removeItem('admin-auth')
+                  setIsAuthenticated(false)
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
-                <RefreshCw className="w-4 h-4" />
-                <span>Yenile</span>
+                Çıkış
               </button>
             </div>
           </div>
@@ -294,9 +361,9 @@ export default function AdminPage() {
           {/* Tabs */}
           <div className="flex space-x-1 border-b border-gray-200">
             <button
-              onClick={() => setActiveTab('album')}
+              onClick={() => setActiveTab('albums')}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'album'
+                activeTab === 'albums'
                   ? 'border-brand-primary text-brand-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
@@ -320,107 +387,115 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'album' ? (
-          <>
-            {/* Album Bilgileri */}
-            <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <FileImage className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{album.fileCount}</div>
-              <div className="text-sm text-gray-600">Toplam Dosya</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Download className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{formatFileSize(album.totalSize)}</div>
-              <div className="text-sm text-gray-600">Toplam Boyut</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="text-sm font-semibold text-gray-900">
-                {formatDate(album.createdAt).split(' ')[0]}
-              </div>
-              <div className="text-sm text-gray-600">Oluşturulma Tarihi</div>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Users className="w-6 h-6 text-orange-600" />
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{album.code}</div>
-              <div className="text-sm text-gray-600">Album Kodu</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dosya Listesi */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Yüklenen Dosyalar</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {files.length} dosya yüklenmiş
+        {activeTab === 'albums' ? (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Album Yönetimi</h2>
+            <p className="text-gray-600">
+              Album kodunu girin ve yönetmek istediğiniz albumü seçin.
             </p>
-          </div>
-
-          {files.length === 0 ? (
-            <div className="text-center py-12">
-              <FileImage className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz dosya yüklenmemiş</h3>
-              <p className="text-gray-600">
-                Misafirler QR kodu okutarak fotoğraf yüklemeye başladığında burada görünecek.
-              </p>
+            <div className="mt-4">
+              <input
+                type="text"
+                placeholder="Album kodu girin (örn: AYSE123)"
+                className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    const albumCode = (e.target as HTMLInputElement).value
+                    if (albumCode) {
+                      fetchAlbumData(albumCode)
+                    }
+                  }
+                }}
+              />
             </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {files.map((file) => (
-                <div key={file.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-2xl">{getFileIcon(file.mimeType)}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">
-                          {file.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatFileSize(file.size)} • {formatDate(file.createdAt)}
-                        </div>
-                      </div>
+            
+            {selectedAlbum && (
+              <div className="mt-6">
+                <h3 className="text-md font-medium text-gray-900 mb-4">Album: {selectedAlbum.code}</h3>
+                <div className="grid md:grid-cols-4 gap-6 mb-6">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <FileImage className="w-6 h-6 text-blue-600" />
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => downloadFile(file)}
-                        className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>İndir</span>
-                      </button>
-                      
-                      <a
-                        href={`https://drive.google.com/file/d/${file.fileId}/view`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-brand-primary text-white rounded-md hover:bg-brand-primary/90 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span>Görüntüle</span>
-                      </a>
+                    <div className="text-2xl font-bold text-gray-900">{selectedAlbum.fileCount}</div>
+                    <div className="text-sm text-gray-600">Toplam Dosya</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Download className="w-6 h-6 text-green-600" />
                     </div>
+                    <div className="text-2xl font-bold text-gray-900">{formatFileSize(selectedAlbum.totalSize)}</div>
+                    <div className="text-sm text-gray-600">Toplam Boyut</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Calendar className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {formatDate(selectedAlbum.createdAt).split(' ')[0]}
+                    </div>
+                    <div className="text-sm text-gray-600">Oluşturulma Tarihi</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{selectedAlbum.code}</div>
+                    <div className="text-sm text-gray-600">Album Kodu</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-          </>
+
+                {/* Dosya Listesi */}
+                <div className="border-t pt-6">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Yüklenen Dosyalar</h4>
+                  {files.length === 0 ? (
+                    <p className="text-gray-500">Henüz dosya yüklenmemiş</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {files.map((file) => (
+                        <div key={file.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                          <div className="flex items-center space-x-4">
+                            <div className="text-2xl">{getFileIcon(file.mimeType)}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {file.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {formatFileSize(file.size)} • {formatDate(file.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => downloadFile(file)}
+                              className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>İndir</span>
+                            </button>
+                            
+                            <a
+                              href={`https://drive.google.com/file/d/${file.fileId}/view`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center space-x-1 px-3 py-1.5 text-sm bg-brand-primary text-white rounded-md hover:bg-brand-primary/90 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>Görüntüle</span>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             {/* Beta Kod Yönetimi */}

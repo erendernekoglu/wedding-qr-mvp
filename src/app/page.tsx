@@ -384,13 +384,6 @@ export default function HomePage() {
                   >
                     Yeni Album Oluştur
                   </button>
-                  <button
-                    onClick={() => router.push(`/admin/${createdAlbum.code}`)}
-                    className="flex items-center space-x-2 px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>Admin Paneli</span>
-                  </button>
                 </div>
               </div>
             </div>
