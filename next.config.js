@@ -2,8 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: { 
-    serverActions: { bodySizeLimit: '50mb' },
-    serverComponentsExternalPackages: ['@prisma/client']
+    serverActions: { bodySizeLimit: '50mb' }
   }
 }
 module.exports = nextConfig
