@@ -7,7 +7,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File
-    const albumCode = formData.get('albumCode') as string
+    const eventCode = params.code
 
     if (!file) {
       return new Response(
@@ -19,16 +19,49 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       )
     }
 
-    console.log(`[UPLOAD] Album: ${albumCode}, File: ${file.name}`)
+    console.log(`[UPLOAD] Event: ${eventCode}, File: ${file.name}`)
 
-    // Album var mı kontrol et
-    const album = await kvDb.album.findUnique({ code: albumCode })
+    // Event var mı kontrol et
+    const event = await kvDb.event.findUnique({ code: eventCode })
 
-    if (!album) {
+    if (!event) {
       return new Response(
-        JSON.stringify({ error: 'Album not found' }),
+        JSON.stringify({ error: 'Event not found' }),
         {
           status: 404,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
+    // Event aktif mi kontrol et
+    if (!event.isActive) {
+      return new Response(
+        JSON.stringify({ error: 'Event is not active' }),
+        {
+          status: 400,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
+    // Dosya limiti kontrol et
+    if (event.maxFiles && event.currentFiles >= event.maxFiles) {
+      return new Response(
+        JSON.stringify({ error: 'File limit reached' }),
+        {
+          status: 400,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
+    // Dosya boyutu kontrol et
+    if (event.maxFileSize && file.size > event.maxFileSize * 1024 * 1024) {
+      return new Response(
+        JSON.stringify({ error: `File too large. Max size: ${event.maxFileSize}MB` }),
+        {
+          status: 400,
           headers: { 'content-type': 'application/json' }
         }
       )
@@ -55,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     // Google Drive'a upload
     const accessToken = await getAccessToken()
     const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
-    const folderId = await ensureAlbumFolder(accessToken, rootId, albumCode)
+    const folderId = await ensureAlbumFolder(accessToken, rootId, eventCode)
 
     const uploadUrl = await startResumable(accessToken, {
       name: file.name,
@@ -85,13 +118,13 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       throw new Error('No file ID returned from Google Drive')
     }
 
-    // Veritabanına kaydet
-    const dbFile = await kvDb.file.create({
-      fileId,
-      name: file.name,
-      size: file.size,
-      mimeType: file.type,
-      albumId: album.id
+    // Event dosya sayısını artır
+    await kvDb.event.incrementFileCount(eventCode, {
+      userId: 'anonymous',
+      userAgent: req.headers.get('user-agent') || 'unknown',
+      ipAddress: req.headers.get('x-forwarded-for') || 'unknown',
+      action: 'file_upload',
+      fileCount: 1
     })
 
     console.log(`[UPLOAD] File uploaded successfully: ${file.name} (${fileId})`)
@@ -100,7 +133,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       JSON.stringify({ 
         success: true, 
         fileId,
-        id: dbFile.id
+        eventCode
       }),
       {
         status: 200,

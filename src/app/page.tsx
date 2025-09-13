@@ -50,28 +50,73 @@ export default function HomePage() {
 
   const handleFileUpload = async (files: FileList) => {
     if (!files || files.length === 0) return
+    if (!currentEvent) {
+      toast({
+        title: 'Hata',
+        description: 'Etkinlik bulunamadı',
+        variant: 'error'
+      })
+      return
+    }
     
     setIsUploading(true)
     try {
-      // Burada gerçek dosya yükleme işlemi olacak
-      // Şimdilik sadece simüle ediyoruz
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Her dosya için upload işlemi
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        
+        // FormData oluştur
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('albumCode', currentEvent.code)
+        
+        // Upload API'sine istek gönder
+        const response = await fetch(`/api/u/${currentEvent.code}/upload`, {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Upload failed')
+        }
+        
+        const result = await response.json()
+        console.log('Upload result:', result)
+      }
       
+      // İlk dosyayı başarılı olarak göster
       setUploadedFile({
         name: files[0].name,
-        url: 'https://example.com/uploaded-file'
+        url: 'https://drive.google.com'
       })
+      
+      // Etkinlik dosya sayısını güncelle
+      setCurrentEvent((prev: any) => prev ? {
+        ...prev,
+        currentFiles: prev.currentFiles + files.length
+      } : null)
+      
+      // Kullanım istatistiği kaydet
+      await trackEventUsage(
+        currentEvent.code,
+        'anonymous',
+        navigator.userAgent,
+        'unknown',
+        'file_upload',
+        files.length
+      )
       
       toast({
         title: 'Başarılı!',
-        description: 'Fotoğraf başarıyla yüklendi',
+        description: `${files.length} dosya başarıyla yüklendi`,
         variant: 'success'
       })
     } catch (error) {
       console.error('Upload error:', error)
       toast({
         title: 'Hata',
-        description: 'Fotoğraf yüklenirken bir hata oluştu',
+        description: error instanceof Error ? error.message : 'Fotoğraf yüklenirken bir hata oluştu',
         variant: 'error'
       })
     } finally {
