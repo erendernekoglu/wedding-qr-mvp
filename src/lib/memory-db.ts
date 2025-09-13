@@ -38,7 +38,7 @@ export const memoryDb = {
     },
     
     findUnique: async (where: { code: string }) => {
-      for (const album of albums.values()) {
+      for (const album of Array.from(albums.values())) {
         if (album.code === where.code) {
           return album
         }
