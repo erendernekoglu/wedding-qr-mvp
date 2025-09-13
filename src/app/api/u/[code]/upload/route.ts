@@ -1,0 +1,109 @@
+import { NextRequest } from 'next/server'
+import { getAccessToken } from '@/lib/google'
+import { ensureAlbumFolder, startResumable } from '@/lib/drive'
+import { prisma } from '@/lib/prisma'
+
+export async function POST(req: NextRequest, { params }: { params: { code: string } }) {
+  try {
+    const formData = await req.formData()
+    const file = formData.get('file') as File
+    const albumCode = formData.get('albumCode') as string
+
+    if (!file) {
+      return new Response(
+        JSON.stringify({ error: 'No file provided' }),
+        {
+          status: 400,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
+    console.log(`[UPLOAD] Album: ${albumCode}, File: ${file.name}`)
+
+    // Album var mı kontrol et
+    const album = await prisma.album.findUnique({
+      where: { code: albumCode }
+    })
+
+    if (!album) {
+      return new Response(
+        JSON.stringify({ error: 'Album not found' }),
+        {
+          status: 404,
+          headers: { 'content-type': 'application/json' }
+        }
+      )
+    }
+
+    // Google Drive'a upload
+    const accessToken = await getAccessToken()
+    const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
+    const folderId = await ensureAlbumFolder(accessToken, rootId, albumCode)
+
+    const uploadUrl = await startResumable(accessToken, {
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      parentFolderId: folderId
+    })
+
+    // Dosyayı Google Drive'a upload et
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'Content-Length': file.size.toString()
+      },
+      body: file
+    })
+
+    if (!uploadResponse.ok) {
+      throw new Error('Google Drive upload failed')
+    }
+
+    const uploadResult = await uploadResponse.json()
+    const fileId = uploadResult.id
+
+    if (!fileId) {
+      throw new Error('No file ID returned from Google Drive')
+    }
+
+    // Veritabanına kaydet
+    const dbFile = await prisma.file.create({
+      data: {
+        fileId,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type,
+        albumId: album.id
+      }
+    })
+
+    console.log(`[UPLOAD] File uploaded successfully: ${file.name} (${fileId})`)
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        fileId,
+        id: dbFile.id
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      }
+    )
+  } catch (e: any) {
+    console.error('[UPLOAD] Error:', e.message)
+    return new Response(
+      JSON.stringify({ 
+        error: e.message ?? 'Upload failed',
+        details: 'Check server logs for more information'
+      }),
+      {
+        status: 500,
+        headers: { 'content-type': 'application/json' }
+      }
+    )
+  }
+}
