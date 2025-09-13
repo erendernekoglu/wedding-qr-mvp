@@ -88,10 +88,11 @@ export default function UploadDropzone({ albumCode }: { albumCode: string }) {
         throw new Error('upload failed')
       }
     } catch (e: any) {
+      console.error('Upload error:', e)
       setItems(prev => prev.map(x => x.id === item.id ? { ...x, status: 'error' } : x))
       toast({
         title: 'Yükleme başarısız',
-        description: 'Yükleme başarısız. Yeniden dene.',
+        description: e.message || 'Yükleme başarısız. Yeniden dene.',
         variant: 'error'
       })
     }

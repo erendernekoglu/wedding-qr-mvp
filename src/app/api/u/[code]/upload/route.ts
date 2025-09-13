@@ -90,11 +90,11 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       }
     )
   } catch (e: any) {
-    console.error('[UPLOAD] Error:', e.message)
+    console.error('[UPLOAD] Error:', e.message, e.stack)
     return new Response(
       JSON.stringify({ 
         error: e.message ?? 'Upload failed',
-        details: 'Check server logs for more information'
+        details: e.stack || 'Check server logs for more information'
       }),
       {
         status: 500,
