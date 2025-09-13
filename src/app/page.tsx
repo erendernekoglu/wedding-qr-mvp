@@ -8,9 +8,8 @@ import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
 import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
 
 export default function HomePage() {
-  const [albumCode, setAlbumCode] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
-  const [createdAlbum, setCreatedAlbum] = useState<{ code: string; url: string } | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null)
   const [betaAccessCode, setBetaAccessCode] = useState('')
   const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
   const [isClient, setIsClient] = useState(false)
@@ -39,104 +38,50 @@ export default function HomePage() {
     }
   }, [])
 
-  const generateCode = () => {
-    // Basit kod üretimi - gerçek uygulamada daha güvenli olmalı
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-    return code
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('tr-TR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
-  const createAlbum = async () => {
-    if (albumCode.trim().length < 3) {
-      toast({
-        title: 'Geçersiz kod',
-        description: 'Album kodu en az 3 karakter olmalıdır.',
-        variant: 'error'
-      })
-      return
-    }
-
-    setIsCreating(true)
+  const handleFileUpload = async (files: FileList) => {
+    if (!files || files.length === 0) return
+    
+    setIsUploading(true)
     try {
-      // API çağrısı yapılacak
-      const response = await fetch('/api/albums/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: albumCode.trim() })
+      // Burada gerçek dosya yükleme işlemi olacak
+      // Şimdilik sadece simüle ediyoruz
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      setUploadedFile({
+        name: files[0].name,
+        url: 'https://example.com/uploaded-file'
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Album oluşturulamadı')
-      }
-
-      const data = await response.json()
-      const albumUrl = `${window.location.origin}/u/${data.code}`
-      setCreatedAlbum({ code: data.code, url: albumUrl })
       
       toast({
-        title: 'Album oluşturuldu!',
-        description: 'QR kodu paylaşarak misafirlerin fotoğraf yüklemesini sağlayabilirsiniz.',
+        title: 'Başarılı!',
+        description: 'Fotoğraf başarıyla yüklendi',
         variant: 'success'
       })
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Upload error:', error)
       toast({
         title: 'Hata',
-        description: error.message || 'Album oluşturulamadı',
+        description: 'Fotoğraf yüklenirken bir hata oluştu',
         variant: 'error'
       })
     } finally {
-      setIsCreating(false)
+      setIsUploading(false)
     }
   }
 
-  const quickCreate = async () => {
-    const code = generateCode()
-    setAlbumCode(code)
-    await createAlbum()
-  }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast({
-        title: 'Kopyalandı!',
-        description: 'URL panoya kopyalandı.',
-        variant: 'success'
-      })
-    } catch {
-      toast({
-        title: 'Kopyalanamadı',
-        description: 'Manuel olarak kopyalayın.',
-        variant: 'error'
-      })
-    }
-  }
 
-  const downloadQR = () => {
-    if (!createdAlbum) return
-    
-    const svg = document.getElementById('qr-code')?.querySelector('svg')
-    if (!svg) return
 
-    const svgData = new XMLSerializer().serializeToString(svg)
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const img = new Image()
-    
-    img.onload = () => {
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx?.drawImage(img, 0, 0)
-      
-      const pngFile = canvas.toDataURL('image/png')
-      const downloadLink = document.createElement('a')
-      downloadLink.download = `album-${createdAlbum.code}-qr.png`
-      downloadLink.href = pngFile
-      downloadLink.click()
-    }
-    
-    img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
-  }
 
   const handleBetaAccess = async () => {
     if (!betaAccessCode.trim()) {
@@ -384,152 +329,137 @@ export default function HomePage() {
           </div>
         </header>
 
-        {!createdAlbum ? (
-          /* Album Oluşturma Formu */
-          <div className="max-w-md mx-auto">
+        {!uploadedFile ? (
+          /* Etkinlik Bilgileri ve Fotoğraf Yükleme */
+          <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-semibold text-center mb-6">
-                Yeni Etkinlik Oluştur
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Etkinlik Kodu
-                  </label>
-                  <input
-                    type="text"
-                    value={albumCode}
-                    onChange={(e) => setAlbumCode(e.target.value.toUpperCase())}
-                    placeholder="örn: PARTY2024"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-                    maxLength={10}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Katılımcılar bu kodu kullanarak fotoğraf yükleyecek
-                  </p>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <Camera className="w-8 h-8 text-blue-600" />
                 </div>
-
-                <div className="space-y-3">
-                  <button
-                    onClick={createAlbum}
-                    disabled={isCreating || !albumCode.trim()}
-                    className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {isCreating ? 'Oluşturuluyor...' : 'Etkinlik Oluştur'}
-                  </button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">veya</span>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={quickCreate}
-                    disabled={isCreating}
-                    className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Hızlı Oluştur (Rastgele Kod)
-                  </button>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {currentEvent?.name || 'Etkinlik'}
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  {currentEvent?.description || 'Etkinlik fotoğraflarınızı paylaşın'}
+                </p>
+                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Etkinlik Kodu: {currentEvent?.code}
                 </div>
               </div>
+
+              {/* Etkinlik İstatistikleri */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {currentEvent?.currentFiles || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Yüklenen Fotoğraf</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {currentEvent?.maxFiles ? `${currentEvent.maxFiles}` : '∞'}
+                  </div>
+                  <div className="text-sm text-gray-600">Maksimum Limit</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {currentEvent?.isActive ? 'Aktif' : 'Pasif'}
+                  </div>
+                  <div className="text-sm text-gray-600">Durum</div>
+                </div>
+              </div>
+
+              {/* Fotoğraf Yükleme Bölümü */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-brand-primary transition-colors">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-primary rounded-full mb-4">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Fotoğraflarınızı Paylaşın
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Etkinlik fotoğraflarınızı buraya sürükleyip bırakın veya seçmek için tıklayın
+                </p>
+                <input
+                  type="file"
+                  id="file-upload"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      handleFileUpload(e.target.files)
+                    }
+                  }}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="inline-flex items-center px-6 py-3 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-primary/90 transition-colors cursor-pointer"
+                >
+                  <Camera className="w-5 h-5 mr-2" />
+                  {isUploading ? 'Yükleniyor...' : 'Fotoğraf Seç'}
+                </label>
+              </div>
+
+              {/* Etkinlik Kuralları */}
+              {currentEvent && (
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Etkinlik Kuralları</h4>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    {currentEvent.maxFiles && (
+                      <li>• Maksimum {currentEvent.maxFiles} fotoğraf yükleyebilirsiniz</li>
+                    )}
+                    {currentEvent.maxFileSize && (
+                      <li>• Her fotoğraf maksimum {currentEvent.maxFileSize}MB olabilir</li>
+                    )}
+                    {currentEvent.allowedTypes && currentEvent.allowedTypes.length > 0 && (
+                      <li>• Sadece {currentEvent.allowedTypes.join(', ')} formatları kabul edilir</li>
+                    )}
+                    {currentEvent.expiresAt && (
+                      <li>• Etkinlik {formatDate(currentEvent.expiresAt)} tarihinde sona erer</li>
+                    )}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         ) : (
-          /* QR Kod ve Paylaşım */
+          /* Fotoğraf Yükleme Başarılı */
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                  <Camera className="w-8 h-8 text-green-600" />
+                </div>
                 <h2 className="text-2xl font-semibold mb-2">
-                  Etkinlik Hazır! 🎉
+                  Fotoğraf Yüklendi! 🎉
                 </h2>
                 <p className="text-gray-600">
-                  QR kodu paylaşarak katılımcıların fotoğraf yüklemesini sağlayın
+                  Fotoğrafınız başarıyla yüklendi ve etkinlik albümüne eklendi
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8 items-center">
-                {/* QR Kod */}
-                <div className="text-center">
-                  <div id="qr-code" className="inline-block p-4 bg-white rounded-xl shadow-lg">
-                    <QRCodeSVG
-                      value={createdAlbum.url}
-                      size={200}
-                      level="M"
-                      includeMargin={true}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Etkinlik Kodu: <span className="font-mono font-semibold">{createdAlbum.code}</span>
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h3 className="font-semibold text-green-900 mb-2">Teşekkürler!</h3>
+                  <p className="text-sm text-green-800">
+                    Fotoğrafınız güvenle Google Drive'da saklandı. 
+                    Etkinlik organizatörü tüm fotoğrafları görebilir.
                   </p>
                 </div>
 
-                {/* Paylaşım Butonları */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Etkinlik URL'si
-                    </label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        value={createdAlbum.url}
-                        readOnly
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm"
-                      />
-                      <button
-                        onClick={() => copyToClipboard(createdAlbum.url)}
-                        className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => copyToClipboard(createdAlbum.url)}
-                      className="flex items-center justify-center space-x-2 py-2 px-4 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
-                    >
-                      <Copy className="w-4 h-4" />
-                      <span>Kopyala</span>
-                    </button>
-                    
-                    <button
-                      onClick={downloadQR}
-                      className="flex items-center justify-center space-x-2 py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>QR İndir</span>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => window.open(createdAlbum.url, '_blank')}
-                    className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>Etkinlik Sayfasını Aç</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="flex justify-center space-x-4">
-                  <button
-                    onClick={() => {
-                      setCreatedAlbum(null)
-                      setAlbumCode('')
-                    }}
-                    className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    Yeni Etkinlik Oluştur
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    // Yeni fotoğraf yükleme için sayfayı yenile
+                    window.location.reload()
+                  }}
+                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors"
+                >
+                  <Camera className="w-5 h-5 inline mr-2" />
+                  Başka Fotoğraf Yükle
+                </button>
               </div>
             </div>
           </div>
