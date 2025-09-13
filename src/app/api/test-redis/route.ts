@@ -6,8 +6,8 @@ export async function GET() {
     console.log('[TEST] Redis connection test started')
     
     // Environment variables kontrol et
-    const redisUrl = process.env.UPSTASH_REDIS_REST_URL
-    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN
+    const redisUrl = process.env.KV_REST_API_URL
+    const redisToken = process.env.KV_REST_API_TOKEN
     
     console.log('[TEST] Redis URL:', redisUrl ? 'SET' : 'MISSING')
     console.log('[TEST] Redis Token:', redisToken ? 'SET' : 'MISSING')
@@ -17,8 +17,8 @@ export async function GET() {
         JSON.stringify({ 
           error: 'Missing environment variables',
           details: {
-            UPSTASH_REDIS_REST_URL: redisUrl ? 'SET' : 'MISSING',
-            UPSTASH_REDIS_REST_TOKEN: redisToken ? 'SET' : 'MISSING'
+            KV_REST_API_URL: redisUrl ? 'SET' : 'MISSING',
+            KV_REST_API_TOKEN: redisToken ? 'SET' : 'MISSING'
           }
         }),
         {
