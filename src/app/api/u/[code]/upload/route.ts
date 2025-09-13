@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getServiceAccountAccessToken } from '@/lib/google-service'
+import { getAccessToken } from '@/lib/google'
 import { ensureAlbumFolder, startResumable } from '@/lib/drive'
 import { kvDb } from '@/lib/kv-db'
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Environment variables kontrol et
-    const requiredEnvs = ['GOOGLE_SERVICE_ACCOUNT_KEY', 'DRIVE_ROOT_FOLDER_ID']
+    const requiredEnvs = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN', 'DRIVE_ROOT_FOLDER_ID']
     const missingEnvs = requiredEnvs.filter(env => !process.env[env])
     
     if (missingEnvs.length > 0) {
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Google Drive'a upload
-    const accessToken = await getServiceAccountAccessToken()
+    const accessToken = await getAccessToken()
     const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
     const folderId = await ensureAlbumFolder(accessToken, rootId, albumCode)
 

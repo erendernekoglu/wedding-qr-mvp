@@ -1,16 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Download, Share2, Camera, Users } from 'lucide-react'
+import { Copy, Download, Share2, Camera, Users, Lock } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { getBetaAccessCode } from '@/lib/beta-users'
 
 export default function HomePage() {
   const [albumCode, setAlbumCode] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [createdAlbum, setCreatedAlbum] = useState<{ code: string; url: string } | null>(null)
+  const [betaAccessCode, setBetaAccessCode] = useState('')
+  const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+
+  useEffect(() => {
+    // Beta access kontrolü
+    const storedAccess = localStorage.getItem('beta-access')
+    if (storedAccess === 'true') {
+      setIsBetaAccessGranted(true)
+    }
+  }, [])
 
   const generateCode = () => {
     // Basit kod üretimi - gerçek uygulamada daha güvenli olmalı
@@ -111,6 +122,71 @@ export default function HomePage() {
     img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
   }
 
+  const handleBetaAccess = () => {
+    if (betaAccessCode === getBetaAccessCode()) {
+      setIsBetaAccessGranted(true)
+      localStorage.setItem('beta-access', 'true')
+      toast({
+        title: 'Beta Erişimi Onaylandı!',
+        description: 'Artık uygulamayı kullanabilirsiniz.',
+        variant: 'success'
+      })
+    } else {
+      toast({
+        title: 'Geçersiz Kod',
+        description: 'Lütfen doğru beta erişim kodunu girin.',
+        variant: 'error'
+      })
+    }
+  }
+
+  // Beta access kontrolü
+  if (!isBetaAccessGranted) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+                <Lock className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                Beta Sürümü
+              </h1>
+              <p className="text-gray-600 mb-6">
+                Bu uygulama şu anda beta aşamasındadır. Erişim için beta kodunu girin.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    value={betaAccessCode}
+                    onChange={(e) => setBetaAccessCode(e.target.value.toUpperCase())}
+                    placeholder="Beta Erişim Kodu"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent text-center font-mono"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleBetaAccess}
+                  disabled={!betaAccessCode.trim()}
+                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Beta Erişimi Al
+                </button>
+                
+                <p className="text-xs text-gray-500">
+                  Beta kodu için geliştirici ile iletişime geçin.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
       <div className="container mx-auto px-4 py-8">
@@ -126,6 +202,10 @@ export default function HomePage() {
             Misafirlerinizin anılarını kolayca paylaşmasını sağlayın. 
             QR kod ile hızlı erişim, Google Drive ile güvenli saklama.
           </p>
+          <div className="mt-4 inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full">
+            <Lock className="w-4 h-4 mr-1" />
+            Beta Sürümü
+          </div>
         </header>
 
         {!createdAlbum ? (
