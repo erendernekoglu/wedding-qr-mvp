@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     const albumData = {
       code: album.code,
       name: album.name,
-      createdAt: album.createdAt.toISOString(),
+      createdAt: album.createdAt, // Zaten string olarak kaydediliyor
       fileCount,
       totalSize
     }
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       name: file.name,
       size: file.size,
       mimeType: file.mimeType,
-      createdAt: file.createdAt.toISOString()
+      createdAt: file.createdAt // Zaten string olarak kaydediliyor
     }))
 
     return new Response(
