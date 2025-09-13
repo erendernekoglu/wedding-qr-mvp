@@ -12,10 +12,14 @@ export default function HomePage() {
   const [createdAlbum, setCreatedAlbum] = useState<{ code: string; url: string } | null>(null)
   const [betaAccessCode, setBetaAccessCode] = useState('')
   const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
 
   useEffect(() => {
+    // Client-side hydration kontrolü
+    setIsClient(true)
+    
     // Beta access kontrolü
     const storedAccess = localStorage.getItem('beta-access')
     if (storedAccess === 'true') {
@@ -169,6 +173,18 @@ export default function HomePage() {
         variant: 'error'
       })
     }
+  }
+
+  // Client-side hydration kontrolü
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    )
   }
 
   // Beta access kontrolü
