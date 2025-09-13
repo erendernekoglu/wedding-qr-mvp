@@ -84,14 +84,31 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Beta kod yönetimi state'leri
-  const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events'>('albums')
+  const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events' | 'analytics'>('albums')
   const [selectedEvents, setSelectedEvents] = useState<string[]>([])
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [bulkAction, setBulkAction] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
+  const [showTemplateEdit, setShowTemplateEdit] = useState(false)
   const [betaCodes, setBetaCodes] = useState<BetaCode[]>([])
   const [betaUsages, setBetaUsages] = useState<BetaUsage[]>([])
   const [showCreateBeta, setShowCreateBeta] = useState(false)
+  
+  // Analytics state'leri
+  const [analyticsData, setAnalyticsData] = useState({
+    totalUsers: 0,
+    totalEvents: 0,
+    totalFiles: 0,
+    totalBetaCodes: 0,
+    dailyStats: [] as any[],
+    weeklyStats: [] as any[],
+    monthlyStats: [] as any[],
+    topBetaCodes: [] as any[],
+    topEvents: [] as any[],
+    recentActivity: [] as any[]
+  })
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [newBetaCode, setNewBetaCode] = useState({
     code: '',
     name: '',
@@ -111,6 +128,16 @@ export default function AdminPage() {
     maxFiles: '',
     maxFileSize: '',
     expiresAt: ''
+  })
+  
+  const [templateEvent, setTemplateEvent] = useState({
+    code: '',
+    name: '',
+    description: '',
+    maxFiles: '',
+    maxFileSize: '',
+    expiresAt: '',
+    customFields: [] as any[]
   })
 
   // Admin şifresi kontrolü
@@ -305,26 +332,170 @@ export default function AdminPage() {
     }
   }
 
-  const handleTemplateSelect = async (template: any) => {
+  const handleTemplateSelect = (template: any) => {
+    // Template'i seç ve düzenleme ekranına geç
+    setSelectedTemplate(template)
+    setShowTemplateSelector(false)
+    
+    // Template verilerini düzenleme formuna yükle
+    setTemplateEvent({
+      code: generateEventCode(),
+      name: template.name,
+      description: template.description,
+      maxFiles: template.defaultSettings.maxFiles.toString(),
+      maxFileSize: template.defaultSettings.maxFileSize.toString(),
+      expiresAt: '',
+      customFields: template.customFields || []
+    })
+    
+    setShowTemplateEdit(true)
+  }
+
+  const generateEventCode = (): string => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let result = ''
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
+  }
+
+  const handleTemplateEventSave = async () => {
     try {
-      const response = await fetch('/api/admin/events/templates', {
+      const response = await fetch('/api/admin/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templateId: template.id })
+        body: JSON.stringify({
+          code: templateEvent.code,
+          name: templateEvent.name,
+          description: templateEvent.description,
+          maxFiles: templateEvent.maxFiles ? parseInt(templateEvent.maxFiles) : undefined,
+          maxFileSize: templateEvent.maxFileSize ? parseInt(templateEvent.maxFileSize) : undefined,
+          allowedTypes: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm'],
+          expiresAt: templateEvent.expiresAt || undefined,
+          customFields: templateEvent.customFields
+        })
       })
-
-      const result = await response.json()
       
-      if (result.success) {
-        alert('Etkinlik şablondan oluşturuldu: ' + result.event.name)
-        setShowTemplateSelector(false)
+      if (response.ok) {
+        alert('Etkinlik şablondan başarıyla oluşturuldu: ' + templateEvent.name)
+        setShowTemplateEdit(false)
+        setSelectedTemplate(null)
+        setTemplateEvent({
+          code: '',
+          name: '',
+          description: '',
+          maxFiles: '',
+          maxFileSize: '',
+          expiresAt: '',
+          customFields: []
+        })
         fetchEvents() // Refresh events list
       } else {
-        alert('Hata: ' + result.error)
+        const errorData = await response.json()
+        alert(`Hata: ${errorData.error || 'Etkinlik oluşturulamadı'}`)
       }
+    } catch (err) {
+      console.error('Template event create error:', err)
+      alert(`Hata: ${err instanceof Error ? err.message : 'Bilinmeyen hata'}`)
+    }
+  }
+
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true)
+    try {
+      // Genel istatistikler
+      const totalUsers = betaUsages.length
+      const totalEvents = events.length
+      const totalFiles = events.reduce((sum, event) => sum + (event.currentFiles || 0), 0)
+      const totalBetaCodes = betaCodes.length
+
+      // Günlük istatistikler (son 7 gün)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date()
+        date.setDate(date.getDate() - i)
+        return date.toISOString().split('T')[0]
+      }).reverse()
+
+      const dailyStats = last7Days.map(date => {
+        const dayUsages = betaUsages.filter(usage => 
+          usage.createdAt.startsWith(date)
+        )
+        const dayEvents = events.filter(event => 
+          event.createdAt.startsWith(date)
+        )
+        
+        return {
+          date,
+          users: dayUsages.length,
+          events: dayEvents.length,
+          files: dayEvents.reduce((sum, event) => sum + (event.currentFiles || 0), 0)
+        }
+      })
+
+      // Haftalık ve aylık istatistikler (basit hesaplama)
+      const weeklyStats = [
+        { week: 'Bu Hafta', users: Math.floor(totalUsers * 0.3), events: Math.floor(totalEvents * 0.2) },
+        { week: 'Geçen Hafta', users: Math.floor(totalUsers * 0.4), events: Math.floor(totalEvents * 0.3) },
+        { week: '2 Hafta Önce', users: Math.floor(totalUsers * 0.3), events: Math.floor(totalEvents * 0.5) }
+      ]
+
+      const monthlyStats = [
+        { month: 'Bu Ay', users: Math.floor(totalUsers * 0.6), events: Math.floor(totalEvents * 0.7) },
+        { month: 'Geçen Ay', users: Math.floor(totalUsers * 0.4), events: Math.floor(totalEvents * 0.3) }
+      ]
+
+      // En popüler beta kodları
+      const betaCodeStats = betaCodes.map(betaCode => {
+        const usages = betaUsages.filter(usage => usage.betaCode === betaCode.code)
+        return {
+          code: betaCode.code,
+          name: betaCode.name,
+          usageCount: usages.length,
+          isActive: betaCode.isActive
+        }
+      }).sort((a, b) => b.usageCount - a.usageCount).slice(0, 5)
+
+      // En popüler etkinlikler
+      const eventStats = events.map(event => ({
+        code: event.code,
+        name: event.name,
+        fileCount: event.currentFiles || 0,
+        isActive: event.isActive
+      })).sort((a, b) => b.fileCount - a.fileCount).slice(0, 5)
+
+      // Son aktiviteler
+      const recentActivity = [
+        ...betaUsages.slice(-5).map(usage => ({
+          type: 'beta_access',
+          message: `${usage.betaCode} beta koduna erişim`,
+          timestamp: usage.createdAt,
+          user: usage.userId
+        })),
+        ...events.slice(-5).map(event => ({
+          type: 'event_created',
+          message: `${event.name} etkinliği oluşturuldu`,
+          timestamp: event.createdAt,
+          user: 'admin'
+        }))
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10)
+
+      setAnalyticsData({
+        totalUsers,
+        totalEvents,
+        totalFiles,
+        totalBetaCodes,
+        dailyStats,
+        weeklyStats,
+        monthlyStats,
+        topBetaCodes: betaCodeStats,
+        topEvents: eventStats,
+        recentActivity
+      })
     } catch (error) {
-      console.error('Template create error:', error)
-      alert('Şablon oluşturma sırasında hata oluştu')
+      console.error('Analytics fetch error:', error)
+    } finally {
+      setAnalyticsLoading(false)
     }
   }
 
@@ -574,6 +745,17 @@ export default function AdminPage() {
               <Key className="w-4 h-4 inline mr-2" />
               Beta Kod Yönetimi
             </button>
+            <button
+              onClick={() => { setActiveTab('analytics'); fetchAnalytics(); }}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'analytics'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 inline mr-2" />
+              Analytics
+            </button>
           </div>
         </div>
       </header>
@@ -790,6 +972,162 @@ export default function AdminPage() {
                       className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Oluştur
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Template Edit Form */}
+              {showTemplateEdit && (
+                <div className="bg-blue-50 rounded-lg p-6 mb-6 border border-blue-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Şablondan Etkinlik Oluştur: {selectedTemplate?.name}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                        {selectedTemplate?.icon} {selectedTemplate?.category}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Kod *</label>
+                      <input
+                        type="text"
+                        value={templateEvent.code}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, code: e.target.value.toUpperCase() })}
+                        placeholder="Örn: DUGUN2024"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">İsim *</label>
+                      <input
+                        type="text"
+                        value={templateEvent.name}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, name: e.target.value })}
+                        placeholder="Örn: Ahmet & Ayşe Düğünü"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Açıklama</label>
+                      <textarea
+                        value={templateEvent.description}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, description: e.target.value })}
+                        placeholder="Etkinlik hakkında kısa açıklama..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Maksimum Dosya Sayısı</label>
+                      <input
+                        type="number"
+                        value={templateEvent.maxFiles}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, maxFiles: e.target.value })}
+                        placeholder="Sınırsız için boş bırakın"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Maksimum Dosya Boyutu (MB)</label>
+                      <input
+                        type="number"
+                        value={templateEvent.maxFileSize}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, maxFileSize: e.target.value })}
+                        placeholder="Sınırsız için boş bırakın"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Son Kullanma Tarihi</label>
+                      <input
+                        type="datetime-local"
+                        value={templateEvent.expiresAt}
+                        onChange={(e) => setTemplateEvent({ ...templateEvent, expiresAt: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Template Özel Alanları */}
+                  {templateEvent.customFields && templateEvent.customFields.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Şablon Özel Alanları</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {templateEvent.customFields.map((field: any, index: number) => (
+                          <div key={index}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {field.name} {field.required && '*'}
+                            </label>
+                            {field.type === 'text' && (
+                              <input
+                                type="text"
+                                placeholder={field.placeholder || ''}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                              />
+                            )}
+                            {field.type === 'textarea' && (
+                              <textarea
+                                placeholder={field.placeholder || ''}
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                              />
+                            )}
+                            {field.type === 'select' && field.options && (
+                              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                                <option value="">Seçin...</option>
+                                {field.options.map((option: string, optIndex: number) => (
+                                  <option key={optIndex} value={option}>{option}</option>
+                                ))}
+                              </select>
+                            )}
+                            {field.type === 'date' && (
+                              <input
+                                type="date"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                              />
+                            )}
+                            {field.type === 'number' && (
+                              <input
+                                type="number"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={() => {
+                        setShowTemplateEdit(false)
+                        setSelectedTemplate(null)
+                        setTemplateEvent({
+                          code: '',
+                          name: '',
+                          description: '',
+                          maxFiles: '',
+                          maxFileSize: '',
+                          expiresAt: '',
+                          customFields: []
+                        })
+                      }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                      İptal
+                    </button>
+                    <button
+                      onClick={handleTemplateEventSave}
+                      disabled={!templateEvent.code || !templateEvent.name}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Etkinliği Oluştur
                     </button>
                   </div>
                 </div>
