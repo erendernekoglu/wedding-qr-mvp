@@ -23,31 +23,19 @@ export default function HomePage() {
     // Client-side hydration kontrolü
     setIsClient(true)
     
-    // Beta access kontrolü
-    const storedAccess = localStorage.getItem('beta-access')
-    if (storedAccess === 'true') {
-      setIsBetaAccessGranted(true)
-    }
+    // Her girişte localStorage'ı temizle - sıfırdan başla
+    localStorage.removeItem('beta-access')
+    localStorage.removeItem('event-access')
+    localStorage.removeItem('event-code')
+    localStorage.removeItem('event-data')
     
-    // Event access kontrolü
-    const storedEventAccess = localStorage.getItem('event-access')
-    const storedEventCode = localStorage.getItem('event-code')
-    const storedEventData = localStorage.getItem('event-data')
-    
-    if (storedEventAccess === 'true' && storedEventCode) {
-      setIsEventAccessGranted(true)
-      setEventCode(storedEventCode)
-      
-      // Kaydedilmiş etkinlik verisini yükle
-      if (storedEventData) {
-        try {
-          const eventData = JSON.parse(storedEventData)
-          setCurrentEvent(eventData)
-        } catch (error) {
-          console.error('Event data parse error:', error)
-        }
-      }
-    }
+    // State'leri sıfırla
+    setIsBetaAccessGranted(false)
+    setIsEventAccessGranted(false)
+    setCurrentEvent(null)
+    setEventCode('')
+    setBetaAccessCode('')
+    setUploadedFile(null)
   }, [])
 
   const formatDate = (dateString: string) => {
@@ -92,12 +80,6 @@ export default function HomePage() {
   }
 
   const handleLogout = () => {
-    // Tüm localStorage verilerini temizle
-    localStorage.removeItem('beta-access')
-    localStorage.removeItem('event-access')
-    localStorage.removeItem('event-code')
-    localStorage.removeItem('event-data')
-    
     // State'leri sıfırla
     setIsBetaAccessGranted(false)
     setIsEventAccessGranted(false)
@@ -108,7 +90,7 @@ export default function HomePage() {
     
     toast({
       title: 'Çıkış Yapıldı',
-      description: 'Tüm oturum verileri temizlendi',
+      description: 'Oturum sonlandırıldı',
       variant: 'info'
     })
   }
@@ -183,8 +165,6 @@ export default function HomePage() {
       
       if (valid) {
         setIsBetaAccessGranted(true)
-        localStorage.setItem('beta-access', 'true')
-        localStorage.setItem('beta-code', betaAccessCode)
         
         // Kullanım istatistiği kaydet
         await trackBetaUsage(
@@ -244,11 +224,6 @@ export default function HomePage() {
         setIsEventAccessGranted(true)
         setCurrentEvent(event)
         setEventCode(eventCode)
-        
-        // localStorage'a kaydet
-        localStorage.setItem('event-access', 'true')
-        localStorage.setItem('event-code', eventCode)
-        localStorage.setItem('event-data', JSON.stringify(event))
         
         // Kullanım istatistiği kaydet
         await trackEventUsage(
