@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { memoryDb } from '@/lib/memory-db'
 
 const createAlbumSchema = z.object({
   code: z.string().min(3).max(10).regex(/^[A-Z0-9]+$/, 'Sadece büyük harf ve rakam kullanılabilir')
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const { code } = validation.data
     
     // Kod kontrolü
-    const existingAlbum = await prisma.album.findUnique({ where: { code } })
+    const existingAlbum = await memoryDb.album.findUnique({ code })
     if (existingAlbum) {
       return new Response(
         JSON.stringify({ error: 'Bu kod zaten kullanılıyor' }),
@@ -36,12 +36,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Album oluştur
-    const album = await prisma.album.create({
-      data: {
-        code,
-        name: `Album ${code}`,
-        isActive: true
-      }
+    const album = await memoryDb.album.create({
+      code,
+      name: `Album ${code}`,
+      isActive: true
     })
 
     console.log(`[ALBUM] Created album with code: ${code}`)

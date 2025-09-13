@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { memoryDb } from '@/lib/memory-db'
 import { z } from 'zod'
 
 const completeRequestSchema = z.object({
@@ -30,9 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     const { fileId, name, size, mimeType } = validation.data
 
     // Album var mı kontrol et
-    const album = await prisma.album.findUnique({
-      where: { code: params.code }
-    })
+    const album = await memoryDb.album.findUnique({ code: params.code })
 
     if (!album) {
       return new Response(
@@ -45,14 +43,12 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Dosyayı veritabanına kaydet
-    const file = await prisma.file.create({
-      data: {
-        fileId,
-        name,
-        size,
-        mimeType,
-        albumId: album.id
-      }
+    const file = await memoryDb.file.create({
+      fileId,
+      name,
+      size,
+      mimeType,
+      albumId: album.id
     })
 
     console.log(`[UPLOAD] File completed: ${file.name} in album ${params.code}`)

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getAccessToken } from '@/lib/google'
 import { ensureAlbumFolder, startResumable } from '@/lib/drive'
-import { prisma } from '@/lib/prisma'
+import { memoryDb } from '@/lib/memory-db'
 
 export async function POST(req: NextRequest, { params }: { params: { code: string } }) {
   try {
@@ -22,9 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     console.log(`[UPLOAD] Album: ${albumCode}, File: ${file.name}`)
 
     // Album var mı kontrol et
-    const album = await prisma.album.findUnique({
-      where: { code: albumCode }
-    })
+    const album = await memoryDb.album.findUnique({ code: albumCode })
 
     if (!album) {
       return new Response(
@@ -70,14 +68,12 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     // Veritabanına kaydet
-    const dbFile = await prisma.file.create({
-      data: {
-        fileId,
-        name: file.name,
-        size: file.size,
-        mimeType: file.type,
-        albumId: album.id
-      }
+    const dbFile = await memoryDb.file.create({
+      fileId,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+      albumId: album.id
     })
 
     console.log(`[UPLOAD] File uploaded successfully: ${file.name} (${fileId})`)

@@ -1,19 +1,12 @@
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { memoryDb } from '@/lib/memory-db'
 
 export async function GET(req: NextRequest, { params }: { params: { code: string } }) {
   try {
     const { code } = params
 
     // Album bilgilerini al
-    const album = await prisma.album.findUnique({
-      where: { code },
-      include: {
-        files: {
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    })
+    const album = await memoryDb.album.findUnique({ code })
 
     if (!album) {
       return new Response(
@@ -25,9 +18,12 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       )
     }
 
+    // Dosyaları al
+    const files = await memoryDb.file.findMany({ albumId: album.id })
+
     // İstatistikleri hesapla
-    const fileCount = album.files.length
-    const totalSize = album.files.reduce((sum, file) => sum + file.size, 0)
+    const fileCount = files.length
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0)
 
     const albumData = {
       code: album.code,
@@ -37,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       totalSize
     }
 
-    const filesData = album.files.map(file => ({
+    const filesData = files.map(file => ({
       id: file.id,
       fileId: file.fileId,
       name: file.name,
