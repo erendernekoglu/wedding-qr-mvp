@@ -137,7 +137,17 @@ export default function HomePage() {
     }
 
     try {
-      const { valid, betaCode } = await validateBetaCode(betaAccessCode)
+      const response = await fetch('/api/validate-beta-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: betaAccessCode })
+      })
+      
+      if (!response.ok) {
+        throw new Error('API hatası')
+      }
+      
+      const { valid, betaCode, error } = await response.json()
       
       if (valid) {
         setIsBetaAccessGranted(true)
@@ -161,7 +171,7 @@ export default function HomePage() {
       } else {
         toast({
           title: 'Geçersiz Kod',
-          description: 'Beta erişim kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
+          description: error || 'Beta erişim kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
           variant: 'error'
         })
       }

@@ -1,69 +1,35 @@
-import { NextRequest } from 'next/server'
-import { Redis } from '@upstash/redis'
+import { NextResponse } from 'next/server'
+import { kvDb } from '@/lib/kv-db'
 
 export async function GET() {
   try {
     console.log('[TEST] Redis connection test started')
+    console.log('[TEST] Redis URL:', process.env.KV_REST_API_URL ? 'SET' : 'NOT SET')
+    console.log('[TEST] Redis Token:', process.env.KV_REST_API_TOKEN ? 'SET' : 'NOT SET')
     
-    // Environment variables kontrol et
-    const redisUrl = process.env.KV_REST_API_URL
-    const redisToken = process.env.KV_REST_API_TOKEN
+    // Basit Redis testi
+    const testKey = 'test:connection'
+    const testValue = 'success'
     
-    console.log('[TEST] Redis URL:', redisUrl ? 'SET' : 'MISSING')
-    console.log('[TEST] Redis Token:', redisToken ? 'SET' : 'MISSING')
+    await kvDb.betaCode.findMany()
     
-    if (!redisUrl || !redisToken) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Missing environment variables',
-          details: {
-            KV_REST_API_URL: redisUrl ? 'SET' : 'MISSING',
-            KV_REST_API_TOKEN: redisToken ? 'SET' : 'MISSING'
-          }
-        }),
-        {
-          status: 500,
-          headers: { 'content-type': 'application/json' }
-        }
-      )
-    }
-    
-    // Redis bağlantısını test et
-    const redis = new Redis({
-      url: redisUrl,
-      token: redisToken,
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Redis bağlantısı başarılı',
+      timestamp: new Date().toISOString()
     })
-    
-    // Basit test
-    await redis.set('test:connection', 'success')
-    const result = await redis.get('test:connection')
-    
-    console.log('[TEST] Redis test result:', result)
-    
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        message: 'Redis connection successful!',
-        testResult: result,
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 200,
-        headers: { 'content-type': 'application/json' }
-      }
-    )
-  } catch (e: any) {
-    console.error('[TEST] Redis error:', e.message, e.stack)
-    return new Response(
-      JSON.stringify({ 
-        error: e.message ?? 'Redis test failed',
-        details: e.stack || 'Check server logs',
-        timestamp: new Date().toISOString()
-      }),
-      {
-        status: 500,
-        headers: { 'content-type': 'application/json' }
-      }
+  } catch (error: any) {
+    console.error('[TEST] Redis error:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error.message,
+        details: {
+          url: process.env.KV_REST_API_URL ? 'SET' : 'NOT SET',
+          token: process.env.KV_REST_API_TOKEN ? 'SET' : 'NOT SET'
+        }
+      },
+      { status: 500 }
     )
   }
 }
