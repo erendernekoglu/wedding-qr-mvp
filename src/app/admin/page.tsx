@@ -1220,6 +1220,84 @@ export default function AdminPage() {
               </div>
             )}
           </>
+        ) : activeTab === 'analytics' ? (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            {analyticsLoading ? (
+              <div>Yükleniyor...</div>
+            ) : (
+              <>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">Analytics</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="p-4 rounded-lg border">
+                    <div className="text-sm text-gray-500">Kullanıcılar</div>
+                    <div className="text-2xl font-semibold">{analyticsData.totalUsers}</div>
+                  </div>
+                  <div className="p-4 rounded-lg border">
+                    <div className="text-sm text-gray-500">Etkinlikler</div>
+                    <div className="text-2xl font-semibold">{analyticsData.totalEvents}</div>
+                  </div>
+                  <div className="p-4 rounded-lg border">
+                    <div className="text-sm text-gray-500">Dosyalar</div>
+                    <div className="text-2xl font-semibold">{analyticsData.totalFiles}</div>
+                  </div>
+                  <div className="p-4 rounded-lg border">
+                    <div className="text-sm text-gray-500">Beta Kodları</div>
+                    <div className="text-2xl font-semibold">{analyticsData.totalBetaCodes}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="p-4 rounded-lg border">
+                    <h3 className="text-md font-medium mb-3">Son 7 Gün</h3>
+                    <div className="space-y-2">
+                      {analyticsData.dailyStats.map((d: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-sm text-gray-700">
+                          <span>{d.date}</span>
+                          <span>Kullanıcı: {d.users} · Etkinlik: {d.events}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg border">
+                    <h3 className="text-md font-medium mb-3">En Popüler Beta Kodları</h3>
+                    <div className="space-y-2">
+                      {analyticsData.topBetaCodes.map((b: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-sm text-gray-700">
+                          <span>{b.code} — {b.name}</span>
+                          <span>{b.usageCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg border">
+                    <h3 className="text-md font-medium mb-3">En Aktif Etkinlikler</h3>
+                    <div className="space-y-2">
+                      {analyticsData.topEvents.map((e: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-sm text-gray-700">
+                          <span>{e.code} — {e.name}</span>
+                          <span>{e.fileCount}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg border">
+                    <h3 className="text-md font-medium mb-3">Son Aktiviteler</h3>
+                    <div className="space-y-2">
+                      {analyticsData.recentActivity.map((a: any, idx: number) => (
+                        <div key={idx} className="flex justify-between text-sm text-gray-700">
+                          <span>{a.message}</span>
+                          <span>{formatDate(a.timestamp)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <>
             {/* Beta Kod Yönetimi */}
