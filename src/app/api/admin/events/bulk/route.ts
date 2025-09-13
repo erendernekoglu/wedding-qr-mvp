@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       case 'duplicate':
         for (const eventId of eventIds) {
           try {
-            const originalEvent = await kvDb.event.getById(eventId)
+            const originalEvent = await kvDb.event.findUnique({ code: eventId })
             if (originalEvent) {
               const duplicatedEvent = {
                 ...originalEvent,

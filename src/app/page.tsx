@@ -9,7 +9,7 @@ import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
 import PWAInstallBanner from '@/components/PWAInstallBanner'
 import DragDropUpload from '@/components/DragDropUpload'
 import ProgressBar from '@/components/ProgressBar'
-import { LoadingSkeleton, UploadSkeleton } from '@/components/LoadingSkeleton'
+import { UploadSkeleton } from '@/components/LoadingSkeleton'
 import ResponsiveContainer, { ResponsiveGrid, ResponsiveText, ResponsiveButton } from '@/components/ResponsiveContainer'
 import { FadeIn, SlideIn, Stagger, HoverScale, PageTransition } from '@/components/Animations'
 

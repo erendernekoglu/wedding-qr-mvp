@@ -3,6 +3,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Download, Eye, Calendar, FileImage, Users, RefreshCw, Settings, Key, BarChart3, Plus, Edit, Trash2, Lock, Camera } from 'lucide-react'
 import Link from 'next/link'
+import { LoadingSkeleton, StatsSkeleton, TableSkeleton } from '@/components/LoadingSkeleton'
+import BulkOperations, { BulkActionModal } from '@/components/BulkOperations'
+import EventTemplateSelector from '@/components/EventTemplateSelector'
+import { EventTemplate, EVENT_TEMPLATES } from '@/lib/event-templates'
 
 interface FileData {
   id: string
@@ -82,7 +86,11 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Beta kod yönetimi state'leri
-  const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events'>('albums')
+  const [activeTab, setActiveTab] = useState<'albums' | 'beta' | 'events' | 'analytics'>('albums')
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [bulkAction, setBulkAction] = useState('')
   const [betaCodes, setBetaCodes] = useState<BetaCode[]>([])
   const [betaUsages, setBetaUsages] = useState<BetaUsage[]>([])
   const [showCreateBeta, setShowCreateBeta] = useState(false)
@@ -106,6 +114,21 @@ export default function AdminPage() {
     maxFileSize: '',
     expiresAt: ''
   })
+
+  // Analytics state'leri
+  const [analyticsData, setAnalyticsData] = useState({
+    totalUsers: 0,
+    totalEvents: 0,
+    totalFiles: 0,
+    totalBetaCodes: 0,
+    dailyStats: [] as any[],
+    weeklyStats: [] as any[],
+    monthlyStats: [] as any[],
+    topBetaCodes: [] as any[],
+    topEvents: [] as any[],
+    recentActivity: [] as any[]
+  })
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   // Admin şifresi kontrolü
   const ADMIN_PASSWORD = 'admin2024' // Production'da environment variable olmalı
@@ -214,6 +237,61 @@ export default function AdminPage() {
     }
   }
 
+  // Bulk operations handlers
+  const handleSelectAllEvents = (selected: boolean) => {
+    if (selected) {
+      setSelectedEvents(events.map(event => event.code))
+    } else {
+      setSelectedEvents([])
+    }
+  }
+
+  const handleBulkAction = async (action: string, eventIds: string[]) => {
+    try {
+      const response = await fetch('/api/admin/events/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, eventIds })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(result.message)
+        setSelectedEvents([])
+        fetchEvents() // Refresh events list
+      } else {
+        alert('Hata: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Bulk action error:', error)
+      alert('Bulk işlem sırasında hata oluştu')
+    }
+  }
+
+  const handleTemplateSelect = async (template: EventTemplate) => {
+    try {
+      const response = await fetch('/api/admin/events/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: template.id })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        alert('Etkinlik şablondan oluşturuldu: ' + result.event.name)
+        setShowTemplateSelector(false)
+        fetchEvents() // Refresh events list
+      } else {
+        alert('Hata: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Template create error:', error)
+      alert('Şablon oluşturma sırasında hata oluştu')
+    }
+  }
+
   const fetchBetaUsage = async (betaCodeId: string) => {
     try {
       const response = await fetch(`/api/admin/beta-codes/${betaCodeId}/usage`)
@@ -302,6 +380,80 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error('Event usage fetch error:', err)
+    }
+  }
+
+  // Analytics fonksiyonları
+  const fetchAnalytics = async () => {
+    setAnalyticsLoading(true)
+    try {
+      // Toplam istatistikleri hesapla
+      const totalBetaCodes = betaCodes.length
+      const totalEvents = events.length
+      const totalFiles = events.reduce((sum, event) => sum + event.currentFiles, 0)
+      const totalUsers = betaUsages.length + eventUsages.length
+
+      // Günlük istatistikler (son 7 gün)
+      const dailyStats = []
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date()
+        date.setDate(date.getDate() - i)
+        const dateStr = date.toISOString().split('T')[0]
+        
+        const dayBetaUsages = betaUsages.filter(usage => 
+          usage.usedAt.startsWith(dateStr)
+        ).length
+        
+        const dayEventUsages = eventUsages.filter(usage => 
+          usage.usedAt.startsWith(dateStr)
+        ).length
+        
+        dailyStats.push({
+          date: dateStr,
+          betaUsages: dayBetaUsages,
+          eventUsages: dayEventUsages,
+          total: dayBetaUsages + dayEventUsages
+        })
+      }
+
+      // En popüler beta kodları
+      const betaCodeStats = betaCodes.map(beta => ({
+        code: beta.code,
+        name: beta.name,
+        uses: beta.currentUses,
+        isActive: beta.isActive
+      })).sort((a, b) => b.uses - a.uses).slice(0, 5)
+
+      // En popüler etkinlikler
+      const eventStats = events.map(event => ({
+        code: event.code,
+        name: event.name,
+        files: event.currentFiles,
+        isActive: event.isActive
+      })).sort((a, b) => b.files - a.files).slice(0, 5)
+
+      // Son aktiviteler
+      const allUsages = [
+        ...betaUsages.map(usage => ({ ...usage, type: 'beta' })),
+        ...eventUsages.map(usage => ({ ...usage, type: 'event' }))
+      ].sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime()).slice(0, 10)
+
+      setAnalyticsData({
+        totalUsers,
+        totalEvents,
+        totalFiles,
+        totalBetaCodes,
+        dailyStats,
+        weeklyStats: [], // Haftalık istatistikler için ayrı hesaplama gerekebilir
+        monthlyStats: [], // Aylık istatistikler için ayrı hesaplama gerekebilir
+        topBetaCodes: betaCodeStats,
+        topEvents: eventStats,
+        recentActivity: allUsages
+      })
+    } catch (err) {
+      console.error('Analytics fetch error:', err)
+    } finally {
+      setAnalyticsLoading(false)
     }
   }
 
@@ -513,6 +665,17 @@ export default function AdminPage() {
               <Key className="w-4 h-4 inline mr-2" />
               Beta Kod Yönetimi
             </button>
+            <button
+              onClick={() => { setActiveTab('analytics'); fetchAnalytics(); }}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'analytics'
+                  ? 'border-brand-primary text-brand-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 inline mr-2" />
+              Analytics
+            </button>
           </div>
         </div>
       </header>
@@ -633,14 +796,33 @@ export default function AdminPage() {
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Etkinlik Kodları</h2>
-                <button
-                  onClick={() => setShowCreateEvent(true)}
-                  className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Yeni Etkinlik Kodu</span>
-                </button>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setShowTemplateSelector(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Şablondan Oluştur</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateEvent(true)}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Yeni Etkinlik Kodu</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Bulk Operations */}
+              <BulkOperations
+                selectedItems={selectedEvents}
+                onSelectAll={handleSelectAllEvents}
+                onBulkAction={handleBulkAction}
+                totalItems={events.length}
+                availableActions={['delete', 'archive', 'activate', 'duplicate']}
+                className="mb-6"
+              />
 
               {/* Etkinlik Oluşturma Formu */}
               {showCreateEvent && (
@@ -730,18 +912,31 @@ export default function AdminPage() {
                 {events.map((event) => (
                   <div key={event.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {event.code}
-                          </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            event.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {event.isActive ? 'Aktif' : 'Pasif'}
-                          </span>
-                        </div>
+                      <div className="flex items-start space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedEvents.includes(event.code)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedEvents([...selectedEvents, event.code])
+                            } else {
+                              setSelectedEvents(selectedEvents.filter(code => code !== event.code))
+                            }
+                          }}
+                          className="w-4 h-4 text-brand-primary border-gray-300 rounded focus:ring-brand-primary mt-1"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {event.code}
+                            </span>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              event.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {event.isActive ? 'Aktif' : 'Pasif'}
+                            </span>
+                          </div>
                         {event.description && (
                           <p className="text-gray-600 text-sm mb-2">{event.description}</p>
                         )}
@@ -809,6 +1004,183 @@ export default function AdminPage() {
               </div>
             )}
           </>
+        ) : activeTab === 'analytics' ? (
+          /* Analytics Dashboard */
+          <div className="space-y-8">
+            {/* Genel İstatistikler */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Users className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Kullanıcı</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analyticsData.totalUsers}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Camera className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Etkinlik</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analyticsData.totalEvents}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <FileImage className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Dosya</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analyticsData.totalFiles}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border p-6">
+                <div className="flex items-center">
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <Key className="w-6 h-6 text-yellow-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Beta Kodları</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analyticsData.totalBetaCodes}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Günlük İstatistikler */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Son 7 Günlük Aktivite</h3>
+              {analyticsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {analyticsData.dailyStats.map((stat, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {new Date(stat.date).toLocaleDateString('tr-TR', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Beta: {stat.betaUsages} | Etkinlik: {stat.eventUsages}
+                        </div>
+                      </div>
+                      <div className="text-lg font-semibold text-brand-primary">
+                        {stat.total}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* En Popüler Beta Kodları */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">En Popüler Beta Kodları</h3>
+              <div className="space-y-3">
+                {analyticsData.topBetaCodes.map((beta, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{beta.name}</div>
+                        <div className="text-sm text-gray-500">{beta.code}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold text-brand-primary">{beta.uses}</span>
+                      <span className="text-sm text-gray-500">kullanım</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        beta.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {beta.isActive ? 'Aktif' : 'Pasif'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* En Popüler Etkinlikler */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">En Popüler Etkinlikler</h3>
+              <div className="space-y-3">
+                {analyticsData.topEvents.map((event, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{event.name}</div>
+                        <div className="text-sm text-gray-500">{event.code}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-semibold text-brand-primary">{event.files}</span>
+                      <span className="text-sm text-gray-500">dosya</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        event.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {event.isActive ? 'Aktif' : 'Pasif'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Son Aktiviteler */}
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Son Aktiviteler</h3>
+              <div className="space-y-3">
+                {analyticsData.recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        activity.type === 'beta' ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        {activity.type === 'beta' ? (
+                          <Key className="w-4 h-4 text-blue-600" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-green-600" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {activity.type === 'beta' ? 'Beta Kodu Kullanımı' : 'Etkinlik Erişimi'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {activity.action} - {activity.userId}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(activity.usedAt).toLocaleString('tr-TR')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         ) : (
           <>
             {/* Beta Kod Yönetimi */}
@@ -979,6 +1351,27 @@ export default function AdminPage() {
           </>
         )}
       </main>
+
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <EventTemplateSelector
+          onSelectTemplate={handleTemplateSelect}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
+
+      {/* Bulk Action Modal */}
+      {showBulkModal && (
+        <BulkActionModal
+          isOpen={showBulkModal}
+          onClose={() => setShowBulkModal(false)}
+          onConfirm={() => handleBulkAction(bulkAction, selectedEvents)}
+          action={bulkAction}
+          itemCount={selectedEvents.length}
+          itemType="etkinlik"
+          isDestructive={bulkAction === 'delete'}
+        />
+      )}
     </div>
   )
 }

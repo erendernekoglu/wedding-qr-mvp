@@ -265,5 +265,6 @@ export const getTemplatesByCategory = (category: string): EventTemplate[] => {
 }
 
 export const getTemplateCategories = (): string[] => {
-  return [...new Set(EVENT_TEMPLATES.map(template => template.category))]
+  const categories = EVENT_TEMPLATES.map(template => template.category)
+  return Array.from(new Set(categories))
 }

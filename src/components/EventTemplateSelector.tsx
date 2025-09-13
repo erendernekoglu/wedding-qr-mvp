@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Search, Filter, Check, Star, Calendar, Users, Camera, Settings } from 'lucide-react'
+import { Search, Filter, Check, Star, Calendar, Users, Camera, Settings, X } from 'lucide-react'
 import { EventTemplate, EVENT_TEMPLATES, getTemplatesByCategory, getTemplateCategories } from '@/lib/event-templates'
 
 interface EventTemplateSelectorProps {
