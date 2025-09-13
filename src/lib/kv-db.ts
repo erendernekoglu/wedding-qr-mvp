@@ -1,4 +1,9 @@
-import { kv } from '@vercel/kv'
+import { Redis } from '@upstash/redis'
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+})
 
 interface Album {
   id: string
@@ -33,20 +38,20 @@ export const kvDb = {
       }
       
       // Album'u code ile kaydet
-      await kv.set(`album:${data.code}`, album)
+      await redis.set(`album:${data.code}`, album)
       // Album'u id ile de kaydet (arama için)
-      await kv.set(`album:id:${id}`, album)
+      await redis.set(`album:id:${id}`, album)
       
       return album
     },
     
     findUnique: async (where: { code: string }) => {
-      const album = await kv.get<Album>(`album:${where.code}`)
+      const album = await redis.get<Album>(`album:${where.code}`)
       return album || null
     },
     
     findById: async (id: string) => {
-      const album = await kv.get<Album>(`album:id:${id}`)
+      const album = await redis.get<Album>(`album:id:${id}`)
       return album || null
     }
   },
@@ -63,16 +68,16 @@ export const kvDb = {
       }
       
       // File'ı id ile kaydet
-      await kv.set(`file:${id}`, file)
+      await redis.set(`file:${id}`, file)
       // Album'e ait file listesine ekle
-      await kv.sadd(`album:${data.albumId}:files`, id)
+      await redis.sadd(`album:${data.albumId}:files`, id)
       
       return file
     },
     
     findMany: async (where: { albumId: string }) => {
       // Album'e ait file ID'lerini al
-      const fileIds = await kv.smembers(`album:${where.albumId}:files`)
+      const fileIds = await redis.smembers(`album:${where.albumId}:files`)
       
       if (!fileIds || fileIds.length === 0) {
         return []
@@ -81,7 +86,7 @@ export const kvDb = {
       // Her file ID için file bilgilerini al
       const files = await Promise.all(
         fileIds.map(async (fileId) => {
-          const file = await kv.get<File>(`file:${fileId}`)
+          const file = await redis.get<File>(`file:${fileId}`)
           return file
         })
       )
@@ -93,7 +98,7 @@ export const kvDb = {
     },
     
     findById: async (id: string) => {
-      const file = await kv.get<File>(`file:${id}`)
+      const file = await redis.get<File>(`file:${id}`)
       return file || null
     }
   }
