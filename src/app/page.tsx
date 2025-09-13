@@ -6,9 +6,16 @@ import { Copy, Download, Share2, Camera, Users, Lock } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
 import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
+import PWAInstallBanner from '@/components/PWAInstallBanner'
+import DragDropUpload from '@/components/DragDropUpload'
+import ProgressBar from '@/components/ProgressBar'
+import { LoadingSkeleton, UploadSkeleton } from '@/components/LoadingSkeleton'
+import ResponsiveContainer, { ResponsiveGrid, ResponsiveText, ResponsiveButton } from '@/components/ResponsiveContainer'
+import { FadeIn, SlideIn, Stagger, HoverScale, PageTransition } from '@/components/Animations'
 
 export default function HomePage() {
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null)
   const [betaAccessCode, setBetaAccessCode] = useState('')
   const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
@@ -60,7 +67,12 @@ export default function HomePage() {
     }
     
     setIsUploading(true)
+    setUploadProgress(0)
+    
     try {
+      const totalFiles = files.length
+      let completedFiles = 0
+      
       // Her dosya için upload işlemi
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
@@ -83,6 +95,11 @@ export default function HomePage() {
         
         const result = await response.json()
         console.log('Upload result:', result)
+        
+        // Progress güncelle
+        completedFiles++
+        const progress = Math.round((completedFiles / totalFiles) * 100)
+        setUploadProgress(progress)
       }
       
       // İlk dosyayı başarılı olarak göster
@@ -121,6 +138,7 @@ export default function HomePage() {
       })
     } finally {
       setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -412,24 +430,29 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-primary rounded-full mb-4">
-            <Camera className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            {currentEvent?.name || 'Momento'}
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {currentEvent?.description || 'Etkinliklerinizin anılarını kolayca paylaşın. QR kod ile hızlı erişim, Google Drive ile güvenli saklama.'}
-          </p>
-          <div className="mt-4 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-            <Camera className="w-4 h-4 mr-1" />
-            Etkinlik: {currentEvent?.code}
-          </div>
-        </header>
+    <PageTransition>
+      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
+        <ResponsiveContainer maxWidth="2xl" padding="lg">
+          {/* Header */}
+          <FadeIn delay={200}>
+            <header className="text-center mb-12">
+              <HoverScale>
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-primary rounded-full mb-4">
+                  <Camera className="w-8 h-8 text-white" />
+                </div>
+              </HoverScale>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                {currentEvent?.name || 'Momento'}
+              </h1>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                {currentEvent?.description || 'Etkinliklerinizin anılarını kolayca paylaşın. QR kod ile hızlı erişim, Google Drive ile güvenli saklama.'}
+              </p>
+              <div className="mt-4 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                <Camera className="w-4 h-4 mr-1" />
+                Etkinlik: {currentEvent?.code}
+              </div>
+            </header>
+          </FadeIn>
 
         {!uploadedFile ? (
           /* Etkinlik Bilgileri ve Fotoğraf Yükleme */
@@ -474,36 +497,27 @@ export default function HomePage() {
               </div>
 
               {/* Fotoğraf Yükleme Bölümü */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-brand-primary transition-colors">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-primary rounded-full mb-4">
-                  <Camera className="w-6 h-6 text-white" />
+              <DragDropUpload
+                onFilesSelected={handleFileUpload}
+                isUploading={isUploading}
+                maxFiles={currentEvent?.maxFiles || 10}
+                maxFileSize={currentEvent?.maxFileSize || 50}
+                acceptedTypes={['image/*', 'video/*', 'audio/*']}
+                className="mb-6"
+              />
+
+              {/* Upload Progress */}
+              {isUploading && (
+                <div className="mb-6">
+                  <ProgressBar
+                    progress={uploadProgress}
+                    showPercentage={true}
+                    size="lg"
+                    color="primary"
+                    animated={true}
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Fotoğraflarınızı Paylaşın
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Etkinlik fotoğraflarınızı buraya sürükleyip bırakın veya seçmek için tıklayın
-                </p>
-                <input
-                  type="file"
-                  id="file-upload"
-                  accept="image/*,video/*,audio/*"
-                  multiple
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      handleFileUpload(e.target.files)
-                    }
-                  }}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="inline-flex items-center px-6 py-3 bg-brand-primary text-white rounded-lg font-medium hover:bg-brand-primary/90 transition-colors cursor-pointer"
-                >
-                  <Camera className="w-5 h-5 mr-2" />
-                  {isUploading ? 'Yükleniyor...' : 'Fotoğraf Seç'}
-                </label>
-              </div>
+              )}
 
               {/* QR Kod ve Paylaşım */}
               {currentEvent && (
@@ -691,7 +705,11 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-      </div>
+      </ResponsiveContainer>
+      
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
     </main>
+    </PageTransition>
   )
 }

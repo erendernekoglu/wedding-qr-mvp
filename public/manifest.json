@@ -1,52 +1,84 @@
 {
-  "name": "Wedding QR - Photos & Invitations",
-  "short_name": "Wedding QR",
-  "description": "Share photos and videos from your wedding via QR codes",
+  "name": "Momento - Anı Paylaşım Uygulaması",
+  "short_name": "Momento",
+  "description": "Etkinliklerinizin anılarını kolayca paylaşın. QR kod ile hızlı erişim, Google Drive ile güvenli saklama.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#C2185B",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "tr",
   "icons": [
     {
-      "src": "/vite.svg",
-      "sizes": "any",
+      "src": "/icon-192x192.svg",
+      "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-144x144.svg",
+      "sizes": "144x144",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-96x96.svg",
+      "sizes": "96x96",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-72x72.svg",
+      "sizes": "72x72",
+      "type": "image/svg+xml"
     }
   ],
   "screenshots": [
     {
-      "src": "/vite.svg",
-      "sizes": "640x480",
-      "type": "image/svg+xml"
+      "src": "/screenshot-mobile.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     }
   ],
-  "categories": ["photo", "social", "productivity"],
+  "categories": ["photo", "social", "productivity", "lifestyle"],
   "shortcuts": [
     {
-      "name": "Upload Photos",
-      "short_name": "Upload",
-      "description": "Upload wedding photos",
-      "url": "/u/upload",
+      "name": "Fotoğraf Yükle",
+      "short_name": "Yükle",
+      "description": "Etkinlik fotoğraflarını yükle",
+      "url": "/",
       "icons": [
         {
-          "src": "/vite.svg",
+          "src": "/icon-96x96.png",
           "sizes": "96x96"
         }
       ]
     },
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "description": "Manage albums",
-      "url": "/dashboard",
+      "name": "Admin Paneli",
+      "short_name": "Admin",
+      "description": "Yönetim paneli",
+      "url": "/admin",
       "icons": [
         {
-          "src": "/vite.svg",
+          "src": "/icon-96x96.png",
           "sizes": "96x96"
         }
       ]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
