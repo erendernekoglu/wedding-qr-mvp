@@ -128,11 +128,21 @@ export default function EventTemplateSelector({
                 )}
 
                 <div className="flex items-start space-x-3">
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                    style={{ backgroundColor: template.color + '20' }}
-                  >
-                    {template.icon}
+                  <div className="relative w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 bg-gray-100">
+                    {template.assets?.coverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={template.assets.coverImage} alt={template.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div 
+                        className="w-full h-full flex items-center justify-center text-2xl"
+                        style={{ backgroundColor: template.color + '20' }}
+                      >
+                        {template.icon}
+                      </div>
+                    )}
+                    <div className="absolute bottom-1 left-1 text-xs px-1.5 py-0.5 rounded bg-white/80 backdrop-blur border">
+                      {template.icon}
+                    </div>
                   </div>
                   
                   <div className="flex-1 min-w-0">
@@ -152,6 +162,13 @@ export default function EventTemplateSelector({
                         <Settings className="w-3 h-3 mr-1" />
                         {template.defaultSettings.maxFileSize}MB limit
                       </div>
+                      {template.assets?.stickers && (
+                        <div className="flex items-center gap-1 text-sm">
+                          {template.assets.stickers.slice(0,5).map((s, i) => (
+                            <span key={i} className="inline-block">{s}</span>
+                          ))}
+                        </div>
+                      )}
                       {template.customFields && template.customFields.length > 0 && (
                         <div className="flex items-center text-xs text-gray-500">
                           <Star className="w-3 h-3 mr-1" />

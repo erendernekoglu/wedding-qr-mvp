@@ -24,6 +24,11 @@ export interface EventTemplate {
     options?: string[]
     placeholder?: string
   }[]
+  assets?: {
+    coverImage: string
+    gallery?: string[]
+    stickers?: string[] // emoji veya küçük ikon stringleri
+  }
 }
 
 export const EVENT_TEMPLATES: EventTemplate[] = [
@@ -34,6 +39,14 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'wedding',
     icon: '💒',
     color: '#C2185B',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/265740/pexels-photo-265740.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/230290/pexels-photo-230290.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+        'https://images.pexels.com/photos/313707/pexels-photo-313707.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['💍','💐','👰','🤵']
+    },
     defaultSettings: {
       maxFiles: 50,
       maxFileSize: 100,
@@ -79,6 +92,14 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'corporate',
     icon: '🏢',
     color: '#2563EB',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+        'https://images.pexels.com/photos/3184639/pexels-photo-3184639.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['📊','💼','🧑‍💻']
+    },
     defaultSettings: {
       maxFiles: 20,
       maxFileSize: 50,
@@ -118,6 +139,14 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'birthday',
     icon: '🎂',
     color: '#F59E0B',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/3171837/pexels-photo-3171837.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+        'https://images.pexels.com/photos/207983/pexels-photo-207983.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['🎈','🎁','🎉']
+    },
     defaultSettings: {
       maxFiles: 30,
       maxFileSize: 25,
@@ -157,6 +186,13 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'graduation',
     icon: '🎓',
     color: '#7C3AED',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/1205651/pexels-photo-1205651.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['🎓','📜']
+    },
     defaultSettings: {
       maxFiles: 40,
       maxFileSize: 50,
@@ -202,6 +238,13 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'anniversary',
     icon: '💕',
     color: '#EC4899',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/1779491/pexels-photo-1779491.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['💕','🍷','🍰']
+    },
     defaultSettings: {
       maxFiles: 25,
       maxFileSize: 30,
@@ -241,10 +284,45 @@ export const EVENT_TEMPLATES: EventTemplate[] = [
     category: 'custom',
     icon: '🎉',
     color: '#10B981',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/1767434/pexels-photo-1767434.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/1763863/pexels-photo-1763863.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['✨','📷']
+    },
     defaultSettings: {
       maxFiles: 20,
       maxFileSize: 50,
       allowedTypes: ['image/*', 'video/*', 'audio/*'],
+      autoApprove: true,
+      requireApproval: false,
+      enableComments: true,
+      enableDownload: true,
+      enableSharing: true,
+      watermark: false,
+      compression: true
+    }
+  }
+  ,
+  {
+    id: 'animals-party',
+    name: 'Hayvan Temalı Parti',
+    description: 'Çocuklar ve hayvan severler için eğlenceli tema',
+    category: 'custom',
+    icon: '🐾',
+    color: '#22C55E',
+    assets: {
+      coverImage: 'https://images.pexels.com/photos/457882/pexels-photo-457882.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop',
+      gallery: [
+        'https://images.pexels.com/photos/145939/pexels-photo-145939.jpeg?auto=compress&cs=tinysrgb&w=800&h=600&fit=crop'
+      ],
+      stickers: ['🦁','🐼','🐵','🦊','🐯']
+    },
+    defaultSettings: {
+      maxFiles: 30,
+      maxFileSize: 25,
+      allowedTypes: ['image/*', 'video/*'],
       autoApprove: true,
       requireApproval: false,
       enableComments: true,
