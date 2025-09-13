@@ -257,9 +257,14 @@ export default function AdminPage() {
         setNewEvent({ code: '', name: '', description: '', maxFiles: '', maxFileSize: '', allowedTypes: '', expiresAt: '' })
         setShowCreateEvent(false)
         fetchEvents()
+        alert('Etkinlik başarıyla oluşturuldu!')
+      } else {
+        const errorData = await response.json()
+        alert(`Hata: ${errorData.error || 'Etkinlik oluşturulamadı'}`)
       }
     } catch (err) {
       console.error('Create event error:', err)
+      alert(`Hata: ${err instanceof Error ? err.message : 'Bilinmeyen hata'}`)
     }
   }
 
