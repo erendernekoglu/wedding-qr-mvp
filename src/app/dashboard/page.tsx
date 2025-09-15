@@ -74,9 +74,11 @@ export default function DashboardPage() {
   }, [isAuthenticated, authLoading, router])
 
   const loadDashboardData = async () => {
+    if (!user) return
+    
     try {
       setLoading(true)
-      const response = await fetch('/api/dashboard')
+      const response = await fetch(`/api/dashboard?userId=${user.id}`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -182,7 +184,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-sm text-gray-600">Hoş geldiniz, {data.user.name}!</p>
+                <p className="text-sm text-gray-600">Hoş geldiniz, {user?.name || 'Kullanıcı'}!</p>
               </div>
             </div>
             

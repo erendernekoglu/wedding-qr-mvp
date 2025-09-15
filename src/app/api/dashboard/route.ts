@@ -4,8 +4,22 @@ import { createErrorResponse } from '@/lib/error-handler'
 
 export async function GET(req: NextRequest) {
   try {
-    // Mock user ID - gerçek uygulamada auth token'dan alınacak
-    const userId = 'user_123'
+    // URL'den userId parametresini al
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
+    
+    if (!userId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'User ID is required'
+        }),
+        {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        }
+      )
+    }
     
     // Tüm etkinlikleri getir (gerçek uygulamada userId ile filtreleme yapılacak)
     const allEvents = await kvDb.event.findMany()
@@ -115,8 +129,8 @@ export async function GET(req: NextRequest) {
           events: formattedEvents,
           activities: formattedActivities,
           user: {
-            name: 'Ahmet', // Mock - gerçek uygulamada user tablosundan gelecek
-            email: 'ahmet@example.com'
+            name: 'Kullanıcı', // Gerçek uygulamada user tablosundan gelecek
+            email: 'user@example.com'
           }
         }
       }),

@@ -65,10 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!foundUser) {
         // Yeni kullanıcı oluştur (kayıt işlemi simülasyonu)
         const newUserId = Date.now().toString()
-        const name = email.split('@')[0] // E-posta adresinden isim çıkar
+        // E-posta adresinden daha iyi isim çıkarma
+        const emailName = email.split('@')[0]
+        const name = emailName.includes('.') 
+          ? emailName.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+          : emailName.charAt(0).toUpperCase() + emailName.slice(1)
+        
         foundUser = {
           id: newUserId,
-          name: name.charAt(0).toUpperCase() + name.slice(1),
+          name: name,
           email: email,
           isAdmin: false
         }
