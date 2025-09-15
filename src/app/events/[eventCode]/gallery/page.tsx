@@ -37,9 +37,12 @@ interface Photo {
   id: string
   name: string
   url: string
+  downloadUrl: string
   tableNumber: number
+  tableName: string
   uploadedAt: string
   size: number
+  mimeType: string
 }
 
 export default function EventGalleryPage() {
@@ -47,6 +50,7 @@ export default function EventGalleryPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
   
   const router = useRouter()
   const params = useParams()
@@ -66,6 +70,17 @@ export default function EventGalleryPage() {
       loadPhotos()
     }
   }, [isAuthenticated, authLoading, router, eventCode])
+
+  // Otomatik yenileme (30 saniyede bir)
+  useEffect(() => {
+    if (!isAuthenticated || !eventData) return
+
+    const interval = setInterval(() => {
+      loadPhotos()
+    }, 30000) // 30 saniye
+
+    return () => clearInterval(interval)
+  }, [isAuthenticated, eventData])
 
   const loadEventData = async () => {
     try {
@@ -96,43 +111,17 @@ export default function EventGalleryPage() {
     try {
       setLoading(true)
       
-      // Mock photos - gerçek uygulamada API'den gelecek
-      const mockPhotos: Photo[] = [
-        {
-          id: '1',
-          name: 'photo1.jpg',
-          url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=400&q=80',
-          tableNumber: 1,
-          uploadedAt: new Date().toISOString(),
-          size: 1024000
-        },
-        {
-          id: '2',
-          name: 'photo2.jpg',
-          url: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=400&q=80',
-          tableNumber: 2,
-          uploadedAt: new Date(Date.now() - 3600000).toISOString(),
-          size: 2048000
-        },
-        {
-          id: '3',
-          name: 'photo3.jpg',
-          url: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=400&q=80',
-          tableNumber: 1,
-          uploadedAt: new Date(Date.now() - 7200000).toISOString(),
-          size: 1536000
-        },
-        {
-          id: '4',
-          name: 'photo4.jpg',
-          url: 'https://images.unsplash.com/photo-1533174072545-7bd46c006744?auto=format&fit=crop&w=400&q=80',
-          tableNumber: 3,
-          uploadedAt: new Date(Date.now() - 10800000).toISOString(),
-          size: 3072000
-        }
-      ]
-      
-      setPhotos(mockPhotos)
+      const response = await fetch(`/api/events/${eventCode}/gallery`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error('Failed to load photos')
+      }
+
+      setPhotos(result.data || [])
       
     } catch (error) {
       console.error('Photos load error:', error)
@@ -159,8 +148,9 @@ export default function EventGalleryPage() {
 
   const handleDownloadPhoto = (photo: Photo) => {
     const link = document.createElement('a')
-    link.href = photo.url
+    link.href = photo.downloadUrl
     link.download = photo.name
+    link.target = '_blank'
     link.click()
   }
 
@@ -170,6 +160,14 @@ export default function EventGalleryPage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const handlePhotoClick = (photo: Photo) => {
+    setSelectedPhoto(photo)
+  }
+
+  const closeModal = () => {
+    setSelectedPhoto(null)
   }
 
   if (authLoading || loading) {
@@ -326,22 +324,36 @@ export default function EventGalleryPage() {
             {photos.map((photo, index) => (
               <FadeIn key={photo.id} delay={400 + index * 50}>
                 <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                  <div className="aspect-square relative group">
+                  <div className="aspect-square relative group cursor-pointer" onClick={() => handlePhotoClick(photo)}>
                     <img
                       src={photo.url}
                       alt={photo.name}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                      <button
-                        onClick={() => handleDownloadPhoto(photo)}
-                        className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
+                      <div className="opacity-0 group-hover:opacity-100 flex space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handlePhotoClick(photo)
+                          }}
+                          className="bg-white text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDownloadPhoto(photo)
+                          }}
+                          className="bg-white text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <div className="absolute top-2 left-2 bg-pink-500 text-white px-2 py-1 rounded text-xs font-medium">
-                      Masa {photo.tableNumber}
+                      {photo.tableName}
                     </div>
                   </div>
                   <div className="p-3">
@@ -356,6 +368,46 @@ export default function EventGalleryPage() {
           </div>
         )}
       </div>
+
+      {/* Photo Modal */}
+      {selectedPhoto && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{selectedPhoto.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {selectedPhoto.tableName} • {formatFileSize(selectedPhoto.size)} • {new Date(selectedPhoto.uploadedAt).toLocaleString('tr-TR')}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDownloadPhoto(selectedPhoto)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>İndir</span>
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <img
+                src={selectedPhoto.url}
+                alt={selectedPhoto.name}
+                className="max-w-full max-h-[70vh] object-contain mx-auto"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
