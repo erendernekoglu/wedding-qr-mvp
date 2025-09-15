@@ -43,12 +43,25 @@ export default function AnalyticsPage() {
   const loadAnalyticsData = async () => {
     setLoading(true)
     try {
-      // Gerçek uygulamada API'den veri gelecek
+      // Gerçek API'den veri çek
+      const response = await fetch('/api/analytics')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error('API returned error')
+      }
+      
+      setAnalyticsData(result.data)
+      setProcessor(new AnalyticsProcessor(result.data))
+    } catch (error) {
+      console.error('Analytics data load error:', error)
+      // Hata durumunda mock data kullan
       const data = generateMockAnalyticsData()
       setAnalyticsData(data)
       setProcessor(new AnalyticsProcessor(data))
-    } catch (error) {
-      console.error('Analytics data load error:', error)
     } finally {
       setLoading(false)
     }

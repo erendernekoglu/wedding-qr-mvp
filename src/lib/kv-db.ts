@@ -76,6 +76,18 @@ interface EventUsage {
   fileCount?: number
 }
 
+interface Activity {
+  id: string
+  userId: string
+  action: string
+  eventCode?: string
+  betaCode?: string
+  fileCount?: number
+  timestamp: string
+  userAgent: string
+  ipAddress: string
+}
+
 export const kvDb = {
   // Album operations
   album: {
@@ -272,6 +284,36 @@ export const kvDb = {
       return usages
         .filter((usage): usage is BetaUsage => usage !== null)
         .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
+    },
+    
+    getAll: async () => {
+      const codes = await redis.smembers('beta:codes:active')
+      if (!codes || codes.length === 0) {
+        return []
+      }
+      
+      const betaCodes = await Promise.all(
+        codes.map(async (code) => {
+          const betaCode = await redis.get<BetaCode>(`beta:${code}`)
+          return betaCode
+        })
+      )
+      
+      return betaCodes
+        .filter((code): code is BetaCode => code !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    },
+    
+    getAllUsages: async () => {
+      const betaCodes = await kvDb.betaCode.findMany()
+      const allUsages: BetaUsage[] = []
+      
+      for (const betaCode of betaCodes) {
+        const usages = await kvDb.betaCode.getUsageStats(betaCode.id)
+        allUsages.push(...usages)
+      }
+      
+      return allUsages
     }
   },
 
@@ -392,6 +434,137 @@ export const kvDb = {
       return usages
         .filter((usage): usage is EventUsage => usage !== null)
         .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
+    },
+    
+    getAll: async () => {
+      const codes = await redis.smembers('events:active')
+      if (!codes || codes.length === 0) {
+        return []
+      }
+      
+      const events = await Promise.all(
+        codes.map(async (code) => {
+          const event = await redis.get<Event>(`event:${code}`)
+          return event
+        })
+      )
+      
+      return events
+        .filter((event): event is Event => event !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    },
+    
+    getAllUsages: async () => {
+      const events = await kvDb.event.getAll()
+      const allUsages: EventUsage[] = []
+      
+      for (const event of events) {
+        const usages = await kvDb.event.getUsageStats(event.id)
+        allUsages.push(...usages)
+      }
+      
+      return allUsages
+    }
+  },
+
+  // Activity operations
+  activity: {
+    create: async (data: Omit<Activity, 'id' | 'timestamp'>) => {
+      const id = Math.random().toString(36).substr(2, 9)
+      const now = new Date().toISOString()
+      const activity: Activity = {
+        ...data,
+        id,
+        timestamp: now
+      }
+      
+      // Activity'yi kaydet
+      await redis.set(`activity:${id}`, activity)
+      // Tarih bazlı indeksleme için
+      const dateKey = now.split('T')[0] // YYYY-MM-DD
+      await redis.sadd(`activity:date:${dateKey}`, id)
+      // Genel aktivite listesine ekle
+      await redis.lpush('activity:all', id)
+      
+      return activity
+    },
+    
+    getRecent: async (limit: number = 10) => {
+      const activityIds = await redis.lrange('activity:all', 0, limit - 1)
+      if (!activityIds || activityIds.length === 0) {
+        return []
+      }
+      
+      const activities = await Promise.all(
+        activityIds.map(async (id) => {
+          const activity = await redis.get<Activity>(`activity:${id}`)
+          return activity
+        })
+      )
+      
+      return activities
+        .filter((activity): activity is Activity => activity !== null)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    },
+    
+    getByDateRange: async (startDate: Date, endDate: Date) => {
+      const activities: Activity[] = []
+      const currentDate = new Date(startDate)
+      
+      while (currentDate <= endDate) {
+        const dateKey = currentDate.toISOString().split('T')[0]
+        const activityIds = await redis.smembers(`activity:date:${dateKey}`)
+        
+        if (activityIds && activityIds.length > 0) {
+          const dayActivities = await Promise.all(
+            activityIds.map(async (id) => {
+              const activity = await redis.get<Activity>(`activity:${id}`)
+              return activity
+            })
+          )
+          
+          activities.push(...dayActivities.filter((activity): activity is Activity => activity !== null))
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      return activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    },
+    
+    getByAction: async (action: string, limit: number = 50) => {
+      // Bu basit bir implementasyon, gerçek uygulamada daha verimli olabilir
+      const allActivityIds = await redis.lrange('activity:all', 0, limit * 2)
+      if (!allActivityIds || allActivityIds.length === 0) {
+        return []
+      }
+      
+      const activities = await Promise.all(
+        allActivityIds.map(async (id) => {
+          const activity = await redis.get<Activity>(`activity:${id}`)
+          return activity
+        })
+      )
+      
+      return activities
+        .filter((activity): activity is Activity => activity !== null && activity.action === action)
+        .slice(0, limit)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    }
+  },
+
+  // Analytics helper functions
+  analytics: {
+    getAllUsages: async () => {
+      const betaUsages = await kvDb.betaCode.getAllUsages()
+      const eventUsages = await kvDb.event.getAllUsages()
+      return [...betaUsages, ...eventUsages]
+    },
+    
+    getAll: async () => {
+      const betaCodes = await kvDb.betaCode.findMany()
+      const events = await kvDb.event.findMany()
+      return { betaCodes, events }
     }
   }
 }

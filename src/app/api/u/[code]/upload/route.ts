@@ -78,14 +78,24 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       throw new AppError(ERROR_CODES.GOOGLE_DRIVE_ERROR, 'No file ID returned from Google Drive', 500)
     }
 
-    // Event dosya sayısını artır
-    await kvDb.event.incrementFileCount(eventCode, {
-      userId: 'anonymous',
-      userAgent: req.headers.get('user-agent') || 'unknown',
-      ipAddress: clientIP,
-      action: 'file_upload',
-      fileCount: 1
-    })
+          // Event dosya sayısını artır
+          await kvDb.event.incrementFileCount(eventCode, {
+            userId: 'anonymous',
+            userAgent: req.headers.get('user-agent') || 'unknown',
+            ipAddress: clientIP,
+            action: 'file_upload',
+            fileCount: 1
+          })
+
+          // Activity tracking
+          await kvDb.activity.create({
+            userId: 'anonymous',
+            action: 'file_upload',
+            eventCode: eventCode,
+            fileCount: 1,
+            userAgent: req.headers.get('user-agent') || 'unknown',
+            ipAddress: clientIP
+          })
 
     console.log(`[UPLOAD] File uploaded successfully: ${file.name} (${fileId})`)
 

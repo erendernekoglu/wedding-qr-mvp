@@ -46,6 +46,15 @@ export const trackBetaUsage = async (code: string, userId: string, userAgent: st
       ipAddress,
       action
     })
+
+    // Activity tracking
+    await kvDb.activity.create({
+      userId,
+      action: 'beta_access',
+      betaCode: code,
+      userAgent,
+      ipAddress
+    })
   } catch (error) {
     console.error('Beta usage tracking error:', error)
     // Hata durumunda uygulamanın çalışmasını engelleme
