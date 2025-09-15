@@ -8,7 +8,8 @@ import {
   Share2,
   QrCode,
   Copy,
-  Check
+  Check,
+  Upload
 } from 'lucide-react'
 import { FadeIn, SlideIn } from '@/components/Animations'
 import { useToast } from '@/components/ui/Toast'
@@ -212,21 +213,34 @@ export default function EventQRPage() {
                 <p className="text-sm text-gray-600 mb-4">
                   Misafirler bu QR kodu okutarak fotoğraf yükleyebilir
                 </p>
-                <button
-                  onClick={() => {
-                    const canvas = document.getElementById(`qr-code-${index}`) as HTMLCanvasElement
-                    if (canvas) {
-                      const link = document.createElement('a')
-                      link.download = `masa-${index + 1}-qr-code.png`
-                      link.href = canvas.toDataURL()
-                      link.click()
-                    }
-                  }}
-                  className="w-full bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition-colors text-sm font-medium"
-                >
-                  <Download className="w-4 h-4 inline mr-2" />
-                  İndir
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      const canvas = document.getElementById(`qr-code-${index}`) as HTMLCanvasElement
+                      if (canvas) {
+                        const link = document.createElement('a')
+                        link.download = `masa-${index + 1}-qr-code.png`
+                        link.href = canvas.toDataURL()
+                        link.click()
+                      }
+                    }}
+                    className="w-full bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition-colors text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4 inline mr-2" />
+                    QR İndir
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      const uploadUrl = `${shareUrl}?table=${index + 1}`
+                      window.open(uploadUrl, '_blank')
+                    }}
+                    className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                  >
+                    <Upload className="w-4 h-4 inline mr-2" />
+                    Fotoğraf Yükle
+                  </button>
+                </div>
               </div>
             </FadeIn>
           ))}

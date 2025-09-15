@@ -365,15 +365,13 @@ export default function EventViewPage() {
                     <span className="text-sm font-medium">Fotoğraf Galerisi</span>
                   </button>
                   
-                  {user?.isAdmin && (
-                    <button
-                      onClick={handleEditEvent}
-                      className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <Settings className="w-5 h-5 text-blue-500" />
-                      <span className="text-sm font-medium">Etkinlik Düzenle</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={handleEditEvent}
+                    className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <Settings className="w-5 h-5 text-blue-500" />
+                    <span className="text-sm font-medium">Etkinlik Detayları Düzenle</span>
+                  </button>
                   
                   <button
                     onClick={() => router.push(`/events/${eventCode}/tables`)}
