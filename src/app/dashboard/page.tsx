@@ -104,12 +104,8 @@ export default function DashboardPage() {
   }
 
   const handleCreateEvent = () => {
-    // TODO: Event creation modal/page
-    toast({
-      title: 'Yakında!',
-      description: 'Etkinlik oluşturma özelliği yakında eklenecek.',
-      variant: 'info'
-    })
+    // Etkinlik satın alma sayfasına yönlendir
+    router.push('/purchase-event')
   }
 
   const handleViewEvent = (eventCode: string) => {
@@ -286,7 +282,7 @@ export default function DashboardPage() {
                     className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-pink-600 hover:to-purple-700 transition-all flex items-center"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Yeni Etkinlik
+                    Etkinlik Satın Al
                   </button>
                 </div>
               </div>
@@ -298,12 +294,12 @@ export default function DashboardPage() {
                       <Calendar className="w-8 h-8 text-gray-400" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz etkinliğiniz yok</h3>
-                    <p className="text-gray-600 mb-4">İlk etkinliğinizi oluşturmak için "Yeni Etkinlik" butonuna tıklayın.</p>
+                    <p className="text-gray-600 mb-4">İlk etkinliğinizi satın almak için "Etkinlik Satın Al" butonuna tıklayın.</p>
                     <button 
                       onClick={handleCreateEvent}
                       className="bg-pink-500 text-white px-6 py-2 rounded-lg hover:bg-pink-600 transition-colors"
                     >
-                      Etkinlik Oluştur
+                      Etkinlik Satın Al
                     </button>
                   </div>
                 ) : (
@@ -385,7 +381,7 @@ export default function DashboardPage() {
                   className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <Plus className="w-5 h-5 text-pink-500" />
-                  <span className="text-sm font-medium">Yeni Etkinlik</span>
+                  <span className="text-sm font-medium">Etkinlik Satın Al</span>
                 </button>
                 <button 
                   onClick={() => router.push('/analytics')}
