@@ -1,60 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { kvDb } from '@/lib/kv-db'
+import { createErrorResponse } from '@/lib/error-handler'
 
-// GET - Etkinlikleri listele
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Tüm etkinlikleri getir
     const events = await kvDb.event.findMany()
-    return NextResponse.json({ events })
-  } catch (error) {
-    console.error('Events fetch error:', error)
-    return NextResponse.json(
-      { error: 'Etkinlikler alınamadı' },
-      { status: 500 }
-    )
-  }
-}
+    
+    // Kullanıcı bilgilerini al
+    const users = await kvDb.user.findMany()
+    const userMap = new Map(users.map(user => [user.id, user]))
+    
+    // Etkinlikleri kullanıcı bilgileri ile zenginleştir
+    const enrichedEvents = events.map(event => ({
+      ...event,
+      createdByUser: userMap.get(event.createdBy)?.name || 'Bilinmeyen Kullanıcı'
+    }))
+    
+    // İstatistikleri hesapla
+    const totalEvents = events.length
+    const activeEvents = events.filter(event => event.isActive).length
+    const pendingEvents = events.filter(event => !event.isActive).length
+    const totalFiles = events.reduce((sum, event) => sum + (event.currentFiles || 0), 0)
+    const totalUsers = users.length
 
-// POST - Yeni etkinlik oluştur
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { code, name, description, maxFiles, maxFileSize, allowedTypes, expiresAt } = body
-
-    if (!code || !name) {
-      return NextResponse.json(
-        { error: 'Kod ve isim gerekli' },
-        { status: 400 }
-      )
+    const stats = {
+      totalEvents,
+      activeEvents,
+      pendingEvents,
+      totalFiles,
+      totalUsers
     }
 
-    // Kod zaten var mı kontrol et
-    const existing = await kvDb.event.findUnique({ code: code.toUpperCase() })
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Bu kod zaten kullanılıyor' },
-        { status: 400 }
-      )
-    }
-
-    const event = await kvDb.event.create({
-      code: code.toUpperCase(),
-      name,
-      description,
-      maxFiles,
-      maxFileSize,
-      allowedTypes: allowedTypes || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'aac'],
-      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
-      isActive: true,
-      createdBy: 'admin'
-    })
-
-    return NextResponse.json({ event })
-  } catch (error) {
-    console.error('Event creation error:', error)
-    return NextResponse.json(
-      { error: 'Etkinlik oluşturulamadı' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          events: enrichedEvents,
+          stats
+        }
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }
     )
+
+  } catch (error: any) {
+    console.error('[ADMIN_EVENTS] Error:', error)
+    return createErrorResponse(error)
   }
 }

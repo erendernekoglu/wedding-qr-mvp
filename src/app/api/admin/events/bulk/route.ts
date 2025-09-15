@@ -1,97 +1,97 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { kvDb } from '@/lib/kv-db'
+import { createErrorResponse } from '@/lib/error-handler'
 
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest) {
   try {
-    const { action, eventIds } = await req.json()
+    const body = await req.json()
+    const { action, eventIds } = body
 
     if (!action || !eventIds || !Array.isArray(eventIds)) {
-      return NextResponse.json(
-        { error: 'Geçersiz istek parametreleri' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Geçersiz istek parametreleri'
+        }),
+        {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        }
       )
     }
 
     const results = []
 
-    switch (action) {
-      case 'delete':
-        for (const eventId of eventIds) {
-          try {
-            await kvDb.event.delete(eventId)
-            results.push({ id: eventId, success: true })
-          } catch (error) {
-            results.push({ id: eventId, success: false, error: 'Silme hatası' })
-          }
-        }
-        break
-
-      case 'archive':
-        for (const eventId of eventIds) {
-          try {
-            await kvDb.event.update(eventId, { isActive: false })
-            results.push({ id: eventId, success: true })
-          } catch (error) {
-            results.push({ id: eventId, success: false, error: 'Arşivleme hatası' })
-          }
-        }
-        break
-
-      case 'activate':
-        for (const eventId of eventIds) {
-          try {
+    for (const eventId of eventIds) {
+      try {
+        if (action === 'approve') {
+          // Etkinliği onayla
+          const event = await kvDb.event.findById(eventId)
+          if (event) {
             await kvDb.event.update(eventId, { isActive: true })
-            results.push({ id: eventId, success: true })
-          } catch (error) {
-            results.push({ id: eventId, success: false, error: 'Aktivasyon hatası' })
+            
+            // Aktivite kaydı oluştur
+            await kvDb.activity.create({
+              userId: 'admin',
+              action: 'event_approved',
+              eventCode: event.code,
+              userAgent: 'admin-panel',
+              ipAddress: 'admin-panel'
+            })
+            
+            results.push({ eventId, success: true })
+          } else {
+            results.push({ eventId, success: false, error: 'Etkinlik bulunamadı' })
           }
-        }
-        break
-
-      case 'duplicate':
-        for (const eventId of eventIds) {
-          try {
-            const originalEvent = await kvDb.event.findUnique({ code: eventId })
-            if (originalEvent) {
-              const duplicatedEvent = {
-                ...originalEvent,
-                code: `${originalEvent.code}_COPY_${Date.now()}`,
-                name: `${originalEvent.name} (Kopya)`,
-                createdAt: new Date().toISOString(),
-                currentFiles: 0
-              }
-              await kvDb.event.create(duplicatedEvent)
-              results.push({ id: eventId, success: true, newId: duplicatedEvent.code })
-            } else {
-              results.push({ id: eventId, success: false, error: 'Etkinlik bulunamadı' })
-            }
-          } catch (error) {
-            results.push({ id: eventId, success: false, error: 'Kopyalama hatası' })
+        } else if (action === 'reject') {
+          // Etkinliği sil
+          const event = await kvDb.event.findById(eventId)
+          if (event) {
+            await kvDb.redis.del(`event:${eventId}`)
+            await kvDb.redis.del(`event:code:${event.code}`)
+            
+            // Aktivite kaydı oluştur
+            await kvDb.activity.create({
+              userId: 'admin',
+              action: 'event_deleted',
+              eventCode: event.code,
+              userAgent: 'admin-panel',
+              ipAddress: 'admin-panel'
+            })
+            
+            results.push({ eventId, success: true })
+          } else {
+            results.push({ eventId, success: false, error: 'Etkinlik bulunamadı' })
           }
+        } else {
+          results.push({ eventId, success: false, error: 'Geçersiz işlem' })
         }
-        break
-
-      default:
-        return NextResponse.json(
-          { error: 'Desteklenmeyen işlem' },
-          { status: 400 }
-        )
+      } catch (error) {
+        results.push({ eventId, success: false, error: 'İşlem hatası' })
+      }
     }
 
     const successCount = results.filter(r => r.success).length
-    const failureCount = results.filter(r => !r.success).length
+    const failCount = results.filter(r => !r.success).length
 
-    return NextResponse.json({
-      success: true,
-      message: `${successCount} etkinlik başarıyla işlendi${failureCount > 0 ? `, ${failureCount} etkinlik başarısız` : ''}`,
-      results
-    })
-
-  } catch (error) {
-    console.error('Bulk operation error:', error)
-    return NextResponse.json(
-      { error: 'Sunucu hatası' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `${successCount} etkinlik işlendi, ${failCount} hata`,
+        data: {
+          results,
+          successCount,
+          failCount
+        }
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }
     )
+
+  } catch (error: any) {
+    console.error('[BULK_EVENTS] Error:', error)
+    return createErrorResponse(error)
   }
 }
