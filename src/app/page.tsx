@@ -136,7 +136,7 @@ export default function LandingPage() {
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors" onClick={(e) => { e.preventDefault(); setIsPricingOpen(true); }}>Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">SSS</a>
               <button 
-                onClick={() => setIsPricingOpen(true)}
+                onClick={() => window.location.href = '/register'}
                 className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
               >
                 Hemen Başla
@@ -172,7 +172,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Stagger>
                 <button 
-                  onClick={() => setIsPricingOpen(true)}
+                  onClick={() => window.location.href = '/register'}
                   className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all transform hover:scale-105"
                 >
                   Hemen Başla
@@ -392,10 +392,10 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-white mb-4">Hemen Başlayın</h2>
           <p className="text-xl text-pink-100 mb-8">Etkinliğinizi unutulmaz kılın</p>
           <button 
-            onClick={() => setIsPricingOpen(true)}
+            onClick={() => window.location.href = '/register'}
             className="bg-white text-pink-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
           >
-            Paketleri Görüntüle
+            Hemen Başla
             <ArrowRight className="w-5 h-5 ml-2 inline" />
           </button>
         </div>
