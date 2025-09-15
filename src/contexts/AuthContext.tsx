@@ -58,9 +58,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         { id: '3', name: 'Test User', email: 'test@example.com', isAdmin: false }
       ]
       
-      const foundUser = mockUsers.find(u => u.email === email)
+      // Önce mock kullanıcılarda ara
+      let foundUser = mockUsers.find(u => u.email === email)
       
-      if (foundUser && password === '123456') {
+      // Eğer mock kullanıcılarda yoksa, yeni kayıt olan kullanıcı olabilir
+      if (!foundUser) {
+        // Yeni kullanıcı oluştur (kayıt işlemi simülasyonu)
+        const newUserId = Date.now().toString()
+        const name = email.split('@')[0] // E-posta adresinden isim çıkar
+        foundUser = {
+          id: newUserId,
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          email: email,
+          isAdmin: false
+        }
+      }
+      
+      // Şifre kontrolü (mock kullanıcılar için 123456, yeni kullanıcılar için herhangi bir şifre)
+      const isValidPassword = password === '123456' || mockUsers.find(u => u.email === email) === undefined
+      
+      if (foundUser && isValidPassword) {
         setUser(foundUser)
         localStorage.setItem('momento_user', JSON.stringify(foundUser))
         return true

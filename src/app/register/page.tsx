@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   User, 
   Mail, 
@@ -27,11 +28,11 @@ export default function RegisterPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   
   const router = useRouter()
   const { toast } = useToast()
+  const { login, isLoading } = useAuth()
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -79,21 +80,33 @@ export default function RegisterPage() {
       return
     }
 
-    setIsLoading(true)
-    
     try {
-      // Simüle edilmiş API çağrısı
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Simüle edilmiş kayıt işlemi
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Başarılı kayıt
-      toast({
-        title: 'Başarılı!',
-        description: 'Hesabınız başarıyla oluşturuldu. Giriş yapabilirsiniz.',
-        variant: 'success'
-      })
+      // Kayıt başarılı, otomatik giriş yap
+      const success = await login(formData.email, formData.password)
       
-      // Giriş sayfasına yönlendir
-      router.push('/login')
+      if (success) {
+        toast({
+          title: 'Hoş geldiniz!',
+          description: 'Hesabınız oluşturuldu ve giriş yapıldı.',
+          variant: 'success'
+        })
+        
+        // Dashboard'a yönlendir
+        router.push('/dashboard')
+      } else {
+        // Bu durumda kayıt başarılı ama giriş başarısız (çok nadir)
+        toast({
+          title: 'Kayıt Başarılı!',
+          description: 'Hesabınız oluşturuldu. Lütfen giriş yapın.',
+          variant: 'success'
+        })
+        
+        // Giriş sayfasına yönlendir
+        router.push('/login')
+      }
       
     } catch (error) {
       toast({
@@ -101,8 +114,6 @@ export default function RegisterPage() {
         description: 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.',
         variant: 'error'
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 
