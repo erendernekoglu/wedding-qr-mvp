@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
       name: 'Admin User',
       firstName: 'Admin',
       lastName: 'User',
-      isAdmin: true
+      isAdmin: true,
+      passwordHash: 'admin123' // Geçici şifre (gerçek uygulamada hash'lenmeli)
     })
 
     return new Response(
