@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { kvDb } from '@/lib/kv-db'
 import { createErrorResponse } from '@/lib/error-handler'
 import { Redis } from '@upstash/redis'
+import { getAccessToken } from '@/lib/google'
+import { ensureAlbumFolder, updateTableFolderName } from '@/lib/drive'
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -29,10 +31,35 @@ export async function PUT(req: NextRequest, { params }: { params: { eventCode: s
       )
     }
 
+    // Eski masa isimlerini al
+    const oldTableNames = event.tableNames || Array.from({ length: event.tableCount || 5 }, (_, i) => `Masa ${i + 1}`)
+    
     // Etkinliği güncelle - eventCode ile güncelleme yap
     const updated = { ...event, tableNames, tableCount }
     await redis.set(`event:${eventCode}`, updated)
     await redis.set(`event:id:${event.id}`, updated)
+    
+    // Drive klasör isimlerini güncelle
+    try {
+      const accessToken = await getAccessToken()
+      const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
+      const eventFolderId = await ensureAlbumFolder(accessToken, rootId, eventCode)
+      
+      // Her masa için klasör ismini güncelle
+      for (let i = 0; i < Math.max(oldTableNames.length, tableNames.length); i++) {
+        const oldName = oldTableNames[i] || `Masa ${i + 1}`
+        const newName = tableNames[i] || `Masa ${i + 1}`
+        
+        if (oldName !== newName) {
+          await updateTableFolderName(accessToken, eventFolderId, oldName, newName)
+        }
+      }
+      
+      console.log(`[TABLES_UPDATE] Drive klasörleri güncellendi: ${eventCode}`)
+    } catch (driveError) {
+      console.error('[TABLES_UPDATE] Drive güncelleme hatası:', driveError)
+      // Drive hatası olsa bile veritabanı güncellemesi devam etsin
+    }
     
     const updatedEvent = updated
 

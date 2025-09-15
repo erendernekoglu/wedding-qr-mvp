@@ -12,6 +12,11 @@ interface UploadItem {
   file: File
 }
 
+interface UploadDropzoneProps {
+  albumCode: string
+  tableNumber?: string
+}
+
 async function getUploadUrl(code: string, file: File) {
   const r = await fetch(`/api/u/${code}/sign`, {
     method: 'POST',
@@ -26,10 +31,11 @@ async function getUploadUrl(code: string, file: File) {
   return uploadUrl as string
 }
 
-async function uploadToServer(albumCode: string, file: File, onProgress?: (p: number) => void) {
+async function uploadToServer(albumCode: string, file: File, tableNumber: string = '1', onProgress?: (p: number) => void) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('albumCode', albumCode)
+  formData.append('tableNumber', tableNumber)
 
   const xhr = new XMLHttpRequest()
   return new Promise<{ status: number; response?: any }>((resolve, reject) => {
@@ -62,7 +68,7 @@ async function completeUpload(code: string, payload: { fileId: string; name: str
   return r.json()
 }
 
-export default function UploadDropzone({ albumCode }: { albumCode: string }) {
+export default function UploadDropzone({ albumCode, tableNumber = '1' }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [items, setItems] = useState<UploadItem[]>([])
   const { toast } = useToast()
@@ -73,7 +79,7 @@ export default function UploadDropzone({ albumCode }: { albumCode: string }) {
     try {
       setItems(prev => prev.map(x => x.id === item.id ? { ...x, status: 'uploading', progress: 0 } : x))
       
-      const result = await uploadToServer(albumCode, item.file, (p) => {
+      const result = await uploadToServer(albumCode, item.file, tableNumber, (p) => {
         setItems(prev => prev.map(x => x.id === item.id ? { ...x, progress: p } : x))
       })
       

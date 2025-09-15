@@ -29,6 +29,63 @@ export async function ensureAlbumFolder(accessToken: string, rootFolderId: strin
   return id
 }
 
+// Masa bazlı klasör oluşturma
+export async function ensureTableFolder(accessToken: string, eventFolderId: string, tableName: string, tableNumber: number) {
+  // var mı diye ara
+  const q = encodeURIComponent(`name = '${tableName}' and '${eventFolderId}' in parents and trashed = false`)
+  const r = await driveFetch(`/files?q=${q}&fields=files(id,name)`, { method: 'GET' }, accessToken)
+  if (!r.ok) throw new Error('Drive list hatası')
+  const { files } = await r.json() as { files: Array<{id: string, name: string}> }
+  if (files?.[0]) return files[0].id
+
+  // yoksa oluştur
+  const meta = { 
+    name: `${tableName}`, 
+    mimeType: 'application/vnd.google-apps.folder', 
+    parents: [eventFolderId] 
+  }
+  const create = await driveFetch(`/files?fields=id`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta)
+  }, accessToken)
+  if (!create.ok) throw new Error('Drive masa klasörü oluşturulamadı')
+  const { id } = await create.json() as { id: string }
+  return id
+}
+
+// Masa klasör ismini güncelleme
+export async function updateTableFolderName(accessToken: string, eventFolderId: string, oldTableName: string, newTableName: string) {
+  try {
+    // Eski klasörü bul
+    const q = encodeURIComponent(`name = '${oldTableName}' and '${eventFolderId}' in parents and trashed = false`)
+    const r = await driveFetch(`/files?q=${q}&fields=files(id,name)`, { method: 'GET' }, accessToken)
+    if (!r.ok) throw new Error('Drive list hatası')
+    const { files } = await r.json() as { files: Array<{id: string, name: string}> }
+    
+    if (files?.[0]) {
+      // Klasör ismini güncelle
+      const updateMeta = { name: newTableName }
+      const update = await driveFetch(`/files/${files[0].id}?fields=id`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateMeta)
+      }, accessToken)
+      
+      if (update.ok) {
+        console.log(`[DRIVE] Masa klasörü güncellendi: ${oldTableName} -> ${newTableName}`)
+        return files[0].id
+      }
+    }
+    
+    // Eski klasör bulunamazsa yeni oluştur
+    return await ensureTableFolder(accessToken, eventFolderId, newTableName, 0)
+  } catch (error) {
+    console.error('[DRIVE] Masa klasör güncelleme hatası:', error)
+    throw error
+  }
+}
+
 export async function startResumable(accessToken: string, opts: {
   name: string,
   size: number,

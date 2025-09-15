@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getAccessToken } from '@/lib/google'
-import { ensureAlbumFolder, startResumable } from '@/lib/drive'
+import { ensureAlbumFolder, ensureTableFolder, startResumable } from '@/lib/drive'
 import { kvDb } from '@/lib/kv-db'
 import { AppError, ERROR_CODES, createErrorResponse, validateEnvironment, checkRateLimit } from '@/lib/error-handler'
 
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     const formData = await req.formData()
     const file = formData.get('file') as File
     const eventCode = params.code
+    const tableNumber = formData.get('tableNumber') as string || '1' // Masa numarası
 
     if (!file) {
       throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'No file provided', 400)
@@ -45,16 +46,20 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       throw new AppError(ERROR_CODES.FILE_TOO_LARGE, `File too large. Max size: ${event.maxFileSize}MB`, 400)
     }
 
-    // Google Drive'a upload
+    // Google Drive'a upload - masa bazlı klasör yapısı
     const accessToken = await getAccessToken()
     const rootId = process.env.DRIVE_ROOT_FOLDER_ID!
-    const folderId = await ensureAlbumFolder(accessToken, rootId, eventCode)
+    const eventFolderId = await ensureAlbumFolder(accessToken, rootId, eventCode)
+    
+    // Masa klasörünü oluştur
+    const tableName = event.tableNames?.[parseInt(tableNumber) - 1] || `Masa ${tableNumber}`
+    const tableFolderId = await ensureTableFolder(accessToken, eventFolderId, tableName, parseInt(tableNumber))
 
     const uploadUrl = await startResumable(accessToken, {
       name: file.name,
       size: file.size,
       mimeType: file.type,
-      parentFolderId: folderId
+      parentFolderId: tableFolderId // Masa klasörüne upload
     })
 
     // Dosyayı Google Drive'a upload et

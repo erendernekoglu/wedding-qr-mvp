@@ -30,9 +30,9 @@ export async function GET(req: NextRequest) {
     const totalFiles = events.reduce((sum, event) => sum + (event.currentFiles || 0), 0)
     const totalTables = events.length * 5 // Mock: her etkinlik için 5 masa varsayımı
     
-    // Aktif etkinlikler
+    // Aktif etkinlikler - gerçek misafir sayısını kullan
     const activeEvents = events.filter(event => event.isActive)
-    const activeGuests = activeEvents.length * 20 // Mock: her aktif etkinlik için 20 misafir varsayımı
+    const activeGuests = events.reduce((sum, event) => sum + (event.guestCount || 0), 0)
     
     // Son 7 günlük aktiviteler
     const sevenDaysAgo = new Date()
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
       status: event.isActive ? 'active' : 'completed',
       tables: 5, // Mock: her etkinlik için 5 masa
       photos: event.currentFiles || 0,
-      guests: event.isActive ? 20 : 0, // Mock: aktif etkinlikler için 20 misafir
+      guests: event.guestCount || 0, // Gerçek misafir sayısı
       maxFiles: event.maxFiles,
       maxFileSize: event.maxFileSize
     }))
