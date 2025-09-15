@@ -659,11 +659,20 @@ export const kvDb = {
   },
 
   // Redis operations
-  redis: {
-    del: async (key: string) => {
-      return await redis.del(key)
-    }
-  },
+        redis: {
+          del: async (key: string) => {
+            return await redis.del(key)
+          },
+          get: async (key: string) => {
+            return await redis.get(key)
+          },
+          set: async (key: string, value: any) => {
+            return await redis.set(key, value)
+          },
+          ping: async () => {
+            return await redis.ping()
+          }
+        },
 
   // Analytics helper functions
   analytics: {
