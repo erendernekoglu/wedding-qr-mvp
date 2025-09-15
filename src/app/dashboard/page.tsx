@@ -68,10 +68,11 @@ export default function DashboardPage() {
       return
     }
     
-    if (isAuthenticated) {
-      loadDashboardData()
+    if (isAuthenticated && user) {
+      // Kullanıcı özel URL'sine yönlendir
+      router.push(`/dashboard/${user.id}`)
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, router, user])
 
   const loadDashboardData = async () => {
     if (!user) return
