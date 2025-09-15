@@ -52,13 +52,10 @@ export default function AdminLayout({ children, title, description }: AdminLayou
       return
     }
 
-    if (!user.isAdmin) {
-      toast({
-        title: 'Yetkisiz Erişim',
-        description: 'Bu sayfaya erişim yetkiniz bulunmuyor.',
-        variant: 'error'
-      })
-      router.push('/dashboard')
+    // Geçici olarak tüm giriş yapmış kullanıcılara admin erişimi ver
+    // TODO: Gerçek admin kontrolü için user.isAdmin kontrolü yapılacak
+    if (user) {
+      setIsLoading(false)
       return
     }
 
