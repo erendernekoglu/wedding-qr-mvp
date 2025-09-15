@@ -103,6 +103,8 @@ export default function EventTablesPage() {
     try {
       setSaving(true)
       
+      console.log('Saving table names:', { tableNames, tableCount: tableNames.length })
+      
       const response = await fetch(`/api/events/${eventCode}/tables`, {
         method: 'PUT',
         headers: {
@@ -114,7 +116,9 @@ export default function EventTablesPage() {
         })
       })
 
+      console.log('Response status:', response.status)
       const result = await response.json()
+      console.log('Response result:', result)
 
       if (result.success) {
         toast({
@@ -129,10 +133,11 @@ export default function EventTablesPage() {
         throw new Error(result.error || 'Update failed')
       }
       
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Save error:', error)
       toast({
         title: 'Hata!',
-        description: 'Masa isimleri güncellenirken bir hata oluştu.',
+        description: `Masa isimleri güncellenirken bir hata oluştu: ${error?.message || 'Bilinmeyen hata'}`,
         variant: 'error'
       })
     } finally {

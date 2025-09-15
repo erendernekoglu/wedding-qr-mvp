@@ -1,6 +1,12 @@
 import { NextRequest } from 'next/server'
 import { kvDb } from '@/lib/kv-db'
 import { createErrorResponse } from '@/lib/error-handler'
+import { Redis } from '@upstash/redis'
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
 
 export async function PUT(req: NextRequest, { params }: { params: { eventCode: string } }) {
   try {
@@ -23,11 +29,12 @@ export async function PUT(req: NextRequest, { params }: { params: { eventCode: s
       )
     }
 
-    // Etkinliği güncelle
-    const updatedEvent = await kvDb.event.update(eventCode, {
-      tableNames,
-      tableCount
-    })
+    // Etkinliği güncelle - eventCode ile güncelleme yap
+    const updated = { ...event, tableNames, tableCount }
+    await redis.set(`event:${eventCode}`, updated)
+    await redis.set(`event:id:${event.id}`, updated)
+    
+    const updatedEvent = updated
 
     // Activity oluştur
     await kvDb.activity.create({
