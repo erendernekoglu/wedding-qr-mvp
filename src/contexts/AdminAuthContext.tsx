@@ -27,17 +27,34 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Admin bilgilerini localStorage'dan yükle
-    const adminData = localStorage.getItem('momento_admin')
-    if (adminData) {
-      try {
-        const parsedAdmin = JSON.parse(adminData)
-        setAdmin(parsedAdmin)
-      } catch (error) {
-        console.error('Admin data parse error:', error)
-        localStorage.removeItem('momento_admin')
+    const loadAdminData = () => {
+      const adminData = localStorage.getItem('momento_admin')
+      if (adminData) {
+        try {
+          const parsedAdmin = JSON.parse(adminData)
+          setAdmin(parsedAdmin)
+        } catch (error) {
+          console.error('Admin data parse error:', error)
+          localStorage.removeItem('momento_admin')
+        }
+      }
+      setIsLoading(false)
+    }
+
+    loadAdminData()
+
+    // localStorage değişikliklerini dinle
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'momento_admin') {
+        loadAdminData()
       }
     }
-    setIsLoading(false)
+
+    window.addEventListener('storage', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
