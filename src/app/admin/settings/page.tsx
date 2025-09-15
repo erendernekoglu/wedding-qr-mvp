@@ -804,9 +804,5 @@ function AdminSettings() {
 }
 
 export default function AdminSettingsPage() {
-  return (
-    <AdminAuthProvider>
-      <AdminSettings />
-    </AdminAuthProvider>
-  )
+  return <AdminSettings />
 }

@@ -47,10 +47,8 @@ function AdminLogin() {
         // Admin bilgilerini localStorage'a kaydet
         localStorage.setItem('momento_admin', JSON.stringify(data.data))
         
-        // Admin paneline yönlendir
-        setTimeout(() => {
-          window.location.href = '/admin'
-        }, 1000)
+        // Hemen admin paneline yönlendir
+        window.location.href = '/admin'
       } else {
         setError(data.error || 'Giriş başarısız')
       }

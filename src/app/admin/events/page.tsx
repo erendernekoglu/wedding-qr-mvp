@@ -561,9 +561,5 @@ function AdminEvents() {
 }
 
 export default function AdminEventsPage() {
-  return (
-    <AdminAuthProvider>
-      <AdminEvents />
-    </AdminAuthProvider>
-  )
+  return <AdminEvents />
 }

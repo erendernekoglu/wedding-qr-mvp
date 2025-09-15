@@ -31,24 +31,33 @@ const navigation = [
 export default function AdminLayout({ children, title, description }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { admin, logout, isAdmin } = useAdminAuth()
+  const [admin, setAdmin] = useState<any>(null)
+  const { logout } = useAdminAuth()
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
     // Admin yetkisi kontrolü
-    if (!admin) {
+    const adminData = localStorage.getItem('momento_admin')
+    if (!adminData) {
       router.push('/admin/login')
       return
     }
-    
-    if (!isAdmin) {
+
+    try {
+      const admin = JSON.parse(adminData)
+      if (!admin.isAdmin) {
+        router.push('/admin/login')
+        return
+      }
+      setAdmin(admin)
+    } catch (error) {
       router.push('/admin/login')
       return
     }
     
     setIsLoading(false)
-  }, [admin, isAdmin, router])
+  }, [router])
 
   const handleLogout = () => {
     logout()

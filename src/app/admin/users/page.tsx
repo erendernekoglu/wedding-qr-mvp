@@ -421,9 +421,5 @@ function AdminUsers() {
 }
 
 export default function AdminUsersPage() {
-  return (
-    <AdminAuthProvider>
-      <AdminUsers />
-    </AdminAuthProvider>
-  )
+  return <AdminUsers />
 }

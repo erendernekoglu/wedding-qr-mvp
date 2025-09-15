@@ -328,9 +328,5 @@ function AdminDashboard() {
 }
 
 export default function AdminDashboardPage() {
-  return (
-    <AdminAuthProvider>
-      <AdminDashboard />
-    </AdminAuthProvider>
-  )
+  return <AdminDashboard />
 }
