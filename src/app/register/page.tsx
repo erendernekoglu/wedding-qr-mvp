@@ -81,34 +81,57 @@ export default function RegisterPage() {
     }
 
     try {
-      // Simüle edilmiş kayıt işlemi
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Kayıt başarılı, otomatik giriş yap
-      const success = await login(formData.email, formData.password)
-      
-      if (success) {
-        toast({
-          title: 'Hoş geldiniz!',
-          description: 'Hesabınız oluşturuldu ve giriş yapıldı.',
-          variant: 'success'
+      // Gerçek kayıt API'si
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          company: formData.company
         })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Kayıt başarılı, otomatik giriş yap
+        const loginSuccess = await login(formData.email, formData.password)
         
-        // Dashboard'a yönlendir
-        router.push('/dashboard')
+        if (loginSuccess) {
+          toast({
+            title: 'Hoş geldiniz!',
+            description: 'Hesabınız oluşturuldu ve giriş yapıldı.',
+            variant: 'success'
+          })
+          
+          // Dashboard'a yönlendir
+          router.push('/dashboard')
+        } else {
+          toast({
+            title: 'Kayıt Başarılı!',
+            description: 'Hesabınız oluşturuldu. Lütfen giriş yapın.',
+            variant: 'success'
+          })
+          
+          // Giriş sayfasına yönlendir
+          router.push('/login')
+        }
       } else {
-        // Bu durumda kayıt başarılı ama giriş başarısız (çok nadir)
         toast({
-          title: 'Kayıt Başarılı!',
-          description: 'Hesabınız oluşturuldu. Lütfen giriş yapın.',
-          variant: 'success'
+          title: 'Kayıt Hatası!',
+          description: result.error || 'Kayıt sırasında bir hata oluştu.',
+          variant: 'error'
         })
-        
-        // Giriş sayfasına yönlendir
-        router.push('/login')
       }
       
     } catch (error) {
+      console.error('Register error:', error)
       toast({
         title: 'Hata!',
         description: 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.',

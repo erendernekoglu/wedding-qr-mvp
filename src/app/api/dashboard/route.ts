@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       )
     }
     
-    // Tüm etkinlikleri getir (gerçek uygulamada userId ile filtreleme yapılacak)
+    // Kullanıcının etkinliklerini getir
     const allEvents = await kvDb.event.findMany()
     const events = allEvents.filter(event => event.createdBy === userId)
     

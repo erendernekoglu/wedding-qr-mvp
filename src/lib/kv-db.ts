@@ -98,6 +98,19 @@ interface Activity {
   ipAddress: string
 }
 
+interface User {
+  id: string
+  email: string
+  name: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  company?: string
+  isAdmin: boolean
+  createdAt: string
+  lastLoginAt?: string
+}
+
 export const kvDb = {
   // Album operations
   album: {
@@ -560,6 +573,70 @@ export const kvDb = {
         .filter((activity): activity is Activity => activity !== null && activity.action === action)
         .slice(0, limit)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    }
+  },
+
+  // User operations
+  user: {
+    create: async (data: Omit<User, 'id' | 'createdAt'>) => {
+      const id = Math.random().toString(36).substr(2, 9)
+      const now = new Date().toISOString()
+      const user: User = {
+        ...data,
+        id,
+        createdAt: now
+      }
+      
+      await redis.set(`user:${id}`, user)
+      await redis.set(`user:email:${data.email}`, user)
+      
+      return user
+    },
+    
+    findById: async (id: string) => {
+      return await redis.get<User>(`user:${id}`)
+    },
+    
+    findByEmail: async (email: string) => {
+      return await redis.get<User>(`user:email:${email}`)
+    },
+    
+    update: async (id: string, data: Partial<User>) => {
+      const existing = await redis.get<User>(`user:${id}`)
+      if (!existing) return null
+      
+      const updated = { ...existing, ...data }
+      await redis.set(`user:${id}`, updated)
+      await redis.set(`user:email:${existing.email}`, updated)
+      
+      return updated
+    },
+    
+    updateLastLogin: async (id: string) => {
+      const user = await redis.get<User>(`user:${id}`)
+      if (!user) return null
+      
+      const updated = { ...user, lastLoginAt: new Date().toISOString() }
+      await redis.set(`user:${id}`, updated)
+      await redis.set(`user:email:${user.email}`, updated)
+      
+      return updated
+    },
+    
+    findMany: async () => {
+      const keys = await redis.keys('user:*')
+      const userKeys = keys.filter(key => !key.includes(':email:'))
+      
+      const users = await Promise.all(
+        userKeys.map(async (key) => {
+          const user = await redis.get<User>(key)
+          return user
+        })
+      )
+      
+      return users
+        .filter((user): user is User => user !== null)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }
   },
 

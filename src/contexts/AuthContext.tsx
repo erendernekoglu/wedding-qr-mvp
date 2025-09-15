@@ -48,43 +48,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true)
       
-      // Simüle edilmiş giriş kontrolü
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock kullanıcı verileri
-      const mockUsers = [
-        { id: '1', name: 'Ahmet Yılmaz', email: 'ahmet@example.com', isAdmin: false },
-        { id: '2', name: 'Admin User', email: 'admin@momento.com', isAdmin: true },
-        { id: '3', name: 'Test User', email: 'test@example.com', isAdmin: false }
-      ]
-      
-      // Önce mock kullanıcılarda ara
-      let foundUser = mockUsers.find(u => u.email === email)
-      
-      // Eğer mock kullanıcılarda yoksa, yeni kayıt olan kullanıcı olabilir
-      if (!foundUser) {
-        // Yeni kullanıcı oluştur (kayıt işlemi simülasyonu)
-        const newUserId = Date.now().toString()
-        // E-posta adresinden daha iyi isim çıkarma
-        const emailName = email.split('@')[0]
-        const name = emailName.includes('.') 
-          ? emailName.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
-          : emailName.charAt(0).toUpperCase() + emailName.slice(1)
-        
-        foundUser = {
-          id: newUserId,
-          name: name,
-          email: email,
-          isAdmin: false
-        }
-      }
-      
-      // Şifre kontrolü (mock kullanıcılar için 123456, yeni kullanıcılar için herhangi bir şifre)
-      const isValidPassword = password === '123456' || mockUsers.find(u => u.email === email) === undefined
-      
-      if (foundUser && isValidPassword) {
-        setUser(foundUser)
-        localStorage.setItem('momento_user', JSON.stringify(foundUser))
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setUser(result.data)
+        localStorage.setItem('momento_user', JSON.stringify(result.data))
         return true
       }
       
