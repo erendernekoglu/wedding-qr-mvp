@@ -6,16 +6,11 @@ import {
   LayoutDashboard, 
   Users, 
   Calendar, 
-  BarChart3, 
   Settings, 
-  Bell, 
   LogOut,
   Menu,
   X,
-  Shield,
-  Activity,
-  FileText,
-  Database
+  Shield
 } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/Toast'
@@ -30,12 +25,7 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard, current: true },
   { name: 'Kullanıcılar', href: '/admin/users', icon: Users, current: false },
   { name: 'Etkinlikler', href: '/admin/events', icon: Calendar, current: false },
-  { name: 'Analitik', href: '/admin/analytics', icon: BarChart3, current: false },
-  { name: 'Bildirimler', href: '/admin/notifications', icon: Bell, current: false },
-  { name: 'Sistem', href: '/admin/system', icon: Settings, current: false },
-  { name: 'Aktiviteler', href: '/admin/activities', icon: Activity, current: false },
-  { name: 'Raporlar', href: '/admin/reports', icon: FileText, current: false },
-  { name: 'Veritabanı', href: '/admin/database', icon: Database, current: false }
+  { name: 'Ayarlar', href: '/admin/settings', icon: Settings, current: false }
 ]
 
 export default function AdminLayout({ children, title, description }: AdminLayoutProps) {
