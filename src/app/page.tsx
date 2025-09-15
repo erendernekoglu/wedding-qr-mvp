@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Download, Share2, Camera, Users, Lock } from 'lucide-react'
+import { Copy, Download, Share2, Camera, Users, Lock, BarChart3 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
 import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
@@ -704,6 +704,17 @@ export default function HomePage() {
               Tüm katılımcılar aynı anda fotoğraf yükleyebilir ve paylaşabilir.
             </p>
           </div>
+        </div>
+
+        {/* Analytics Link */}
+        <div className="mt-12 text-center">
+          <a
+            href="/analytics"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span>Analytics Dashboard'u Görüntüle</span>
+          </a>
         </div>
       </ResponsiveContainer>
       
