@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   Mail, 
   Lock, 
@@ -18,11 +19,11 @@ export default function LoginPage() {
     password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   
   const router = useRouter()
   const { toast } = useToast()
+  const { login, isLoading } = useAuth()
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -48,30 +49,31 @@ export default function LoginPage() {
       return
     }
 
-    setIsLoading(true)
-    
     try {
-      // Simüle edilmiş API çağrısı
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const success = await login(formData.email, formData.password)
       
-      // Başarılı giriş
-      toast({
-        title: 'Hoş geldiniz!',
-        description: 'Başarıyla giriş yaptınız.',
-        variant: 'success'
-      })
-      
-      // Dashboard'a yönlendir
-      router.push('/dashboard')
-      
+      if (success) {
+        toast({
+          title: 'Hoş geldiniz!',
+          description: 'Başarıyla giriş yaptınız.',
+          variant: 'success'
+        })
+        
+        // Dashboard'a yönlendir
+        router.push('/dashboard')
+      } else {
+        toast({
+          title: 'Hata!',
+          description: 'E-posta veya şifre hatalı.',
+          variant: 'error'
+        })
+      }
     } catch (error) {
       toast({
         title: 'Hata!',
-        description: 'E-posta veya şifre hatalı.',
+        description: 'Giriş sırasında bir hata oluştu.',
         variant: 'error'
       })
-    } finally {
-      setIsLoading(false)
     }
   }
 

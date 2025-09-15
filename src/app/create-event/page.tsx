@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   Calendar, 
   Users, 
@@ -68,6 +69,7 @@ function CreateEventContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   const selectedPackage = searchParams.get('package') || 'professional'
 
@@ -99,21 +101,44 @@ function CreateEventContent() {
   }
 
   const handleCreateEvent = async () => {
+    if (!user) {
+      toast({
+        title: 'Hata!',
+        description: 'Giriş yapmanız gerekiyor.',
+        variant: 'error'
+      })
+      return
+    }
+
     setIsCreating(true)
     
     try {
-      // Simüle edilmiş etkinlik oluşturma
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Başarılı oluşturma
-      toast({
-        title: 'Etkinlik Oluşturuldu!',
-        description: 'Etkinliğiniz başarıyla oluşturuldu. QR kodlarınızı indirebilirsiniz.',
-        variant: 'success'
+      const response = await fetch('/api/events/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          userId: user.id,
+          packageType: selectedPackage
+        })
       })
-      
-      // Dashboard'a yönlendir
-      router.push('/dashboard')
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: 'Etkinlik Oluşturuldu!',
+          description: 'Etkinliğiniz admin onayına gönderildi. Onaylandıktan sonra aktif olacak.',
+          variant: 'success'
+        })
+        
+        // Dashboard'a yönlendir
+        router.push('/dashboard')
+      } else {
+        throw new Error(result.error || 'Etkinlik oluşturulamadı')
+      }
       
     } catch (error) {
       toast({

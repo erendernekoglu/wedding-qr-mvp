@@ -2,6 +2,7 @@ import './globals.css'
 import type { ReactNode } from 'react'
 import { ToastProvider } from '@/components/ui/Toast'
 import { Toaster } from '@/components/ui/Toast'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export const metadata = {
   title: 'Momento - Anı Paylaşım Uygulaması',
@@ -44,10 +45,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
             </head>
       <body className="min-h-screen bg-white text-slate-900 antialiased">
-        <ToastProvider>
-          {children}
-          <Toaster />
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            {children}
+            <Toaster />
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   )

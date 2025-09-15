@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
 import { 
   Plus, 
   Calendar, 
@@ -59,10 +60,18 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    
+    if (isAuthenticated) {
+      loadDashboardData()
+    }
+  }, [isAuthenticated, authLoading, router])
 
   const loadDashboardData = async () => {
     try {
@@ -117,8 +126,8 @@ export default function DashboardPage() {
   }
 
   const handleLogout = () => {
-    // TODO: Implement logout
-    router.push('/login')
+    const { logout } = useAuth()
+    logout()
     toast({
       title: 'Çıkış Yapıldı',
       description: 'Başarıyla çıkış yaptınız.',
@@ -126,7 +135,7 @@ export default function DashboardPage() {
     })
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -135,6 +144,10 @@ export default function DashboardPage() {
         </div>
       </div>
     )
+  }
+
+  if (!isAuthenticated) {
+    return null // Redirect will happen in useEffect
   }
 
   if (!data) {
