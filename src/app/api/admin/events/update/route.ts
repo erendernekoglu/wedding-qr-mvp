@@ -39,7 +39,12 @@ export async function PUT(req: NextRequest) {
       name,
       description,
       maxFiles,
-      isActive
+      isActive,
+      eventDate,
+      eventTime,
+      location,
+      tableCount,
+      customMessage
     })
 
     // Activity oluştur

@@ -36,12 +36,12 @@ export async function GET(req: NextRequest, { params }: { params: { eventCode: s
           maxFiles: event.maxFiles,
           currentFiles: event.currentFiles || 0,
           maxFileSize: event.maxFileSize,
-          eventDate: undefined,
-          eventTime: undefined,
-          location: undefined,
-          tableCount: undefined,
-          template: undefined,
-          customMessage: undefined
+          eventDate: event.eventDate,
+          eventTime: event.eventTime,
+          location: event.location,
+          tableCount: event.tableCount,
+          template: event.template,
+          customMessage: event.customMessage
         }
       }),
       {

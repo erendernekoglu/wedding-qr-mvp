@@ -63,6 +63,12 @@ interface Event {
   createdAt: string
   expiresAt?: string
   lastUsedAt?: string
+  eventDate?: string
+  eventTime?: string
+  location?: string
+  tableCount?: number
+  template?: string
+  customMessage?: string
 }
 
 interface EventUsage {
