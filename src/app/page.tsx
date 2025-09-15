@@ -1,726 +1,484 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Download, Share2, Camera, Users, Lock, BarChart3 } from 'lucide-react'
-import { useToast } from '@/components/ui/Toast'
-import { validateBetaCode, trackBetaUsage } from '@/lib/beta-users'
-import { validateEventCode, trackEventUsage } from '@/lib/event-validation'
-import PWAInstallBanner from '@/components/PWAInstallBanner'
-import DragDropUpload from '@/components/DragDropUpload'
-import ProgressBar from '@/components/ProgressBar'
-import { UploadSkeleton } from '@/components/LoadingSkeleton'
-import ResponsiveContainer, { ResponsiveGrid, ResponsiveText, ResponsiveButton } from '@/components/ResponsiveContainer'
-import { FadeIn, SlideIn, Stagger, HoverScale, PageTransition } from '@/components/Animations'
+import { useState } from 'react'
+import { 
+  QrCode, 
+  Camera, 
+  Users, 
+  Download, 
+  Star, 
+  CheckCircle, 
+  ArrowRight,
+  Play,
+  Menu,
+  X
+} from 'lucide-react'
+import { FadeIn, SlideIn, Stagger, HoverScale } from '@/components/Animations'
 
-export default function HomePage() {
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null)
-  const [betaAccessCode, setBetaAccessCode] = useState('')
-  const [isBetaAccessGranted, setIsBetaAccessGranted] = useState(false)
-  const [isClient, setIsClient] = useState(false)
-  const [eventCode, setEventCode] = useState('')
-  const [isEventAccessGranted, setIsEventAccessGranted] = useState(false)
-  const [currentEvent, setCurrentEvent] = useState<any>(null)
-  const { toast } = useToast()
-  const router = useRouter()
+export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isPricingOpen, setIsPricingOpen] = useState(false)
 
-  useEffect(() => {
-    // Client-side hydration kontrolü
-    setIsClient(true)
-    
-    // Her girişte localStorage'ı temizle - sıfırdan başla
-    localStorage.removeItem('beta-access')
-    localStorage.removeItem('event-access')
-    localStorage.removeItem('event-code')
-    localStorage.removeItem('event-data')
-    
-    // State'leri sıfırla
-    setIsBetaAccessGranted(false)
-    setIsEventAccessGranted(false)
-    setCurrentEvent(null)
-    setEventCode('')
-    setBetaAccessCode('')
-    setUploadedFile(null)
-  }, [])
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('tr-TR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const handleFileUpload = async (files: FileList) => {
-    if (!files || files.length === 0) return
-    if (!currentEvent) {
-      toast({
-        title: 'Hata',
-        description: 'Etkinlik bulunamadı',
-        variant: 'error'
-      })
-      return
+  const features = [
+    {
+      icon: <QrCode className="w-8 h-8" />,
+      title: "Masa Bazlı QR Kodlar",
+      description: "Her masa için ayrı QR kod oluşturun. Misafirler hangi masadan fotoğraf yüklediğini kolayca takip edin.",
+      color: "bg-blue-500"
+    },
+    {
+      icon: <Camera className="w-8 h-8" />,
+      title: "Anında Fotoğraf Yükleme",
+      description: "QR kod okutun, kamera açılsın, fotoğraf çekin ve yükleyin. Hiç uygulama indirmeye gerek yok.",
+      color: "bg-green-500"
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "Canlı Fotoğraf Galerisi",
+      description: "Etkinlik sırasında tüm fotoğrafları canlı olarak görün. Masa bazlı filtreleme ile organize edin.",
+      color: "bg-purple-500"
+    },
+    {
+      icon: <Download className="w-8 h-8" />,
+      title: "Otomatik Drive Saklama",
+      description: "Tüm fotoğraflar Google Drive'da otomatik olarak organize edilir. Etkinlik sonrası kolayca erişin.",
+      color: "bg-orange-500"
     }
-    
-    setIsUploading(true)
-    setUploadProgress(0)
-    
-    try {
-      const totalFiles = files.length
-      let completedFiles = 0
-      
-      // Her dosya için upload işlemi
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        
-        // FormData oluştur
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('albumCode', currentEvent.code)
-        
-        // Upload API'sine istek gönder
-        const response = await fetch(`/api/u/${currentEvent.code}/upload`, {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Upload failed')
-        }
-        
-        const result = await response.json()
-        console.log('Upload result:', result)
-        
-        // Progress güncelle
-        completedFiles++
-        const progress = Math.round((completedFiles / totalFiles) * 100)
-        setUploadProgress(progress)
-      }
-      
-      // İlk dosyayı başarılı olarak göster
-      setUploadedFile({
-        name: files[0].name,
-        url: 'https://drive.google.com'
-      })
-      
-      // Etkinlik dosya sayısını güncelle
-      setCurrentEvent((prev: any) => prev ? {
-        ...prev,
-        currentFiles: prev.currentFiles + files.length
-      } : null)
-      
-      // Kullanım istatistiği kaydet
-      await trackEventUsage(
-        currentEvent.code,
-        'anonymous',
-        navigator.userAgent,
-        'unknown',
-        'file_upload',
-        files.length
-      )
-      
-      toast({
-        title: 'Başarılı!',
-        description: `${files.length} dosya başarıyla yüklendi`,
-        variant: 'success'
-      })
-    } catch (error) {
-      console.error('Upload error:', error)
-      toast({
-        title: 'Hata',
-        description: error instanceof Error ? error.message : 'Fotoğraf yüklenirken bir hata oluştu',
-        variant: 'error'
-      })
-    } finally {
-      setIsUploading(false)
-      setUploadProgress(0)
+  ]
+
+  const eventTypes = [
+    { name: "Düğün", icon: "💒", color: "bg-pink-100 text-pink-800" },
+    { name: "Doğum Günü", icon: "🎂", color: "bg-yellow-100 text-yellow-800" },
+    { name: "Mezuniyet", icon: "🎓", color: "bg-blue-100 text-blue-800" },
+    { name: "İş Etkinliği", icon: "💼", color: "bg-gray-100 text-gray-800" },
+    { name: "Parti", icon: "🎉", color: "bg-purple-100 text-purple-800" },
+    { name: "Toplantı", icon: "🤝", color: "bg-green-100 text-green-800" }
+  ]
+
+  const pricingPlans = [
+    {
+      name: "Temel",
+      price: "100",
+      photos: "100",
+      features: ["1 Etkinlik", "5 Masa", "100 Fotoğraf", "Temel Tema", "Email Destek"],
+      popular: false
+    },
+    {
+      name: "Profesyonel",
+      price: "200",
+      photos: "200",
+      features: ["1 Etkinlik", "10 Masa", "200 Fotoğraf", "Premium Tema", "Öncelikli Destek", "Canlı Galeri"],
+      popular: true
+    },
+    {
+      name: "Kurumsal",
+      price: "500",
+      photos: "500",
+      features: ["1 Etkinlik", "20 Masa", "500 Fotoğraf", "Özel Tema", "7/24 Destek", "Gelişmiş Analitik"],
+      popular: false
     }
-  }
+  ]
 
-  const handleLogout = () => {
-    // State'leri sıfırla
-    setIsBetaAccessGranted(false)
-    setIsEventAccessGranted(false)
-    setCurrentEvent(null)
-    setEventCode('')
-    setBetaAccessCode('')
-    setUploadedFile(null)
-    
-    toast({
-      title: 'Çıkış Yapıldı',
-      description: 'Oturum sonlandırıldı',
-      variant: 'info'
-    })
-  }
-
-  const downloadQR = () => {
-    if (!currentEvent) return
-    
-    try {
-      const svg = document.querySelector('#qr-code svg')
-      if (!svg) return
-
-      const svgData = new XMLSerializer().serializeToString(svg)
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
-      img.onload = () => {
-        canvas.width = img.width
-        canvas.height = img.height
-        ctx?.drawImage(img, 0, 0)
-        
-        const pngFile = canvas.toDataURL('image/png')
-        const downloadLink = document.createElement('a')
-        downloadLink.download = `etkinlik-${currentEvent.code}-qr.png`
-        downloadLink.href = pngFile
-        downloadLink.click()
-        
-        toast({
-          title: 'QR Kod İndirildi!',
-          description: 'QR kod başarıyla indirildi',
-          variant: 'success'
-        })
-      }
-      
-      img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
-    } catch (error) {
-      console.error('QR download error:', error)
-      toast({
-        title: 'Hata',
-        description: 'QR kod indirilemedi',
-        variant: 'error'
-      })
+  const testimonials = [
+    {
+      name: "Ahmet & Ayşe",
+      event: "Düğün",
+      message: "Misafirlerimiz çok kolay fotoğraf yükledi. Her masadan gelen fotoğrafları ayrı ayrı görebilmek harika oldu!",
+      rating: 5
+    },
+    {
+      name: "Mehmet Kaya",
+      event: "İş Etkinliği",
+      message: "Şirket etkinliğimizde kullandık. Çok profesyonel görünüyor ve misafirlerimiz çok beğendi.",
+      rating: 5
+    },
+    {
+      name: "Elif Demir",
+      event: "Doğum Günü",
+      message: "Kızımın doğum gününde kullandık. Herkes fotoğraflarını kolayca paylaştı, çok eğlenceli oldu!",
+      rating: 5
     }
-  }
+  ]
 
-
-
-
-
-  const handleBetaAccess = async () => {
-    if (!betaAccessCode.trim()) {
-      toast({
-        title: 'Kod Gerekli',
-        description: 'Lütfen beta erişim kodunu girin.',
-        variant: 'error'
-      })
-      return
+  const faqs = [
+    {
+      question: "Nasıl çalışıyor?",
+      answer: "Etkinlik oluşturun, masa sayısını belirleyin, QR kodları indirin ve masalara yerleştirin. Misafirler QR kodu okutup fotoğraf yükleyebilir."
+    },
+    {
+      question: "Uygulama indirmek gerekli mi?",
+      answer: "Hayır! Misafirler sadece QR kodu okutup tarayıcıdan fotoğraf yükleyebilir. Hiç uygulama indirmeye gerek yok."
+    },
+    {
+      question: "Fotoğraflar nerede saklanıyor?",
+      answer: "Tüm fotoğraflar Google Drive'da güvenli şekilde saklanıyor. Etkinlik sonrası kolayca erişebilirsiniz."
+    },
+    {
+      question: "Kaç masa kullanabilirim?",
+      answer: "Paketinize göre değişir. Temel pakette 5 masa, Profesyonel'de 10 masa, Kurumsal'da 20 masa kullanabilirsiniz."
     }
-
-    try {
-      const response = await fetch('/api/validate-beta-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: betaAccessCode })
-      })
-      
-      if (!response.ok) {
-        throw new Error('API hatası')
-      }
-      
-      const { valid, betaCode, error } = await response.json()
-      
-      if (valid) {
-        setIsBetaAccessGranted(true)
-        
-        // Kullanım istatistiği kaydet
-        await trackBetaUsage(
-          betaAccessCode,
-          'anonymous',
-          navigator.userAgent,
-          'unknown', // IP adresi server-side'da alınabilir
-          'beta_access'
-        )
-        
-        // Beta kodu doğrulandıktan sonra URL'yi güncelle
-        router.push(`/b/${betaAccessCode}`)
-        
-        toast({
-          title: 'Beta Erişimi Onaylandı!',
-          description: `Hoş geldiniz! ${betaCode?.name || 'Beta'} kodunu kullanıyorsunuz.`,
-          variant: 'success'
-        })
-      } else {
-        toast({
-          title: 'Geçersiz Kod',
-          description: error || 'Beta erişim kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
-          variant: 'error'
-        })
-      }
-    } catch (error) {
-      console.error('Beta access error:', error)
-      toast({
-        title: 'Hata',
-        description: 'Beta erişim kontrolü sırasında bir hata oluştu.',
-        variant: 'error'
-      })
-    }
-  }
-
-  const handleEventAccess = async () => {
-    if (!eventCode.trim()) {
-      toast({
-        title: 'Kod Gerekli',
-        description: 'Lütfen etkinlik kodunu girin.',
-        variant: 'error'
-      })
-      return
-    }
-
-    try {
-      const response = await fetch('/api/validate-event-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: eventCode })
-      })
-      
-      if (!response.ok) {
-        throw new Error('API hatası')
-      }
-      
-      const { valid, event, error } = await response.json()
-      
-      if (valid) {
-        setIsEventAccessGranted(true)
-        setCurrentEvent(event)
-        setEventCode(eventCode)
-        
-        // Kullanım istatistiği kaydet
-        await trackEventUsage(
-          eventCode,
-          'anonymous',
-          navigator.userAgent,
-          'unknown',
-          'event_access',
-          0
-        )
-        
-        toast({
-          title: 'Etkinlik Erişimi Onaylandı!',
-          description: `Hoş geldiniz! ${event?.name || 'Etkinlik'} kodunu kullanıyorsunuz.`,
-          variant: 'success'
-        })
-      } else {
-        toast({
-          title: 'Geçersiz Kod',
-          description: error || 'Etkinlik kodu geçersiz, süresi dolmuş veya kullanım limitine ulaşmış.',
-          variant: 'error'
-        })
-      }
-    } catch (error) {
-      console.error('Event access error:', error)
-      toast({
-        title: 'Hata',
-        description: 'Etkinlik erişim kontrolü sırasında bir hata oluştu.',
-        variant: 'error'
-      })
-    }
-  }
-
-  // Client-side hydration kontrolü
-  if (!isClient) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Beta access kontrolü
-  if (!isBetaAccessGranted) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-                <Lock className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Beta Sürümü
-              </h1>
-              <p className="text-gray-600 mb-6">
-                Bu uygulama şu anda beta aşamasındadır. Erişim için beta kodunu girin.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    value={betaAccessCode}
-                    onChange={(e) => setBetaAccessCode(e.target.value.toUpperCase())}
-                    placeholder="Beta Erişim Kodu"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent text-center font-mono"
-                  />
-                </div>
-                
-                <button
-                  onClick={handleBetaAccess}
-                  disabled={!betaAccessCode.trim()}
-                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Beta Erişimi Al
-                </button>
-                
-                <p className="text-xs text-gray-500">
-                  Beta kodu için geliştirici ile iletişime geçin.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  // Etkinlik erişim kontrolü
-  if (!isEventAccessGranted) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                <Camera className="w-8 h-8 text-blue-600" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Etkinlik Erişimi
-              </h1>
-              <p className="text-gray-600 mb-6">
-                Etkinliğe katılmak için etkinlik kodunu girin.
-              </p>
-              
-              <div className="space-y-4">
-                <div>
-                  <input
-                    type="text"
-                    value={eventCode}
-                    onChange={(e) => setEventCode(e.target.value.toUpperCase())}
-                    placeholder="Etkinlik Kodu"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent text-center font-mono"
-                  />
-                </div>
-                
-                <button
-                  onClick={handleEventAccess}
-                  disabled={!eventCode.trim()}
-                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Etkinliğe Katıl
-                </button>
-                
-                <p className="text-xs text-gray-500">
-                  Etkinlik kodu için organizatör ile iletişime geçin.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
+  ]
 
   return (
-    <PageTransition>
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 to-rose-100">
-        <ResponsiveContainer maxWidth="2xl" padding="lg">
-          {/* Header */}
-          <FadeIn delay={200}>
-            <header className="text-center mb-12">
-              <HoverScale>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-primary rounded-full mb-4">
-                  <Camera className="w-8 h-8 text-white" />
-                </div>
-              </HoverScale>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                {currentEvent?.name || 'Momento'}
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">M</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">Momento</span>
+            </div>
+            
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Özellikler</a>
+              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Fiyatlar</a>
+              <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">SSS</a>
+              <button 
+                onClick={() => setIsPricingOpen(true)}
+                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
+              >
+                Hemen Başla
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-20 pb-16 bg-gradient-to-br from-pink-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <FadeIn>
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                Etkinliklerinizi
+                <span className="bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent"> Unutulmaz</span>
+                <br />Kılın
               </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                {currentEvent?.description || 'Etkinliklerinizin anılarını kolayca paylaşın. QR kod ile hızlı erişim, Google Drive ile güvenli saklama.'}
+              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                Masa bazlı QR kod sistemi ile misafirleriniz kolayca fotoğraf yüklesin. 
+                Canlı galeri ile tüm anları anında görün.
               </p>
-              <div className="mt-4 inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                <Camera className="w-4 h-4 mr-1" />
-                Etkinlik: {currentEvent?.code}
-              </div>
-            </header>
-          </FadeIn>
+            </FadeIn>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Stagger>
+                <button 
+                  onClick={() => setIsPricingOpen(true)}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all transform hover:scale-105"
+                >
+                  Hemen Başla
+                  <ArrowRight className="w-5 h-5 ml-2 inline" />
+                </button>
+                <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-semibold hover:border-gray-400 transition-all">
+                  <Play className="w-5 h-5 mr-2 inline" />
+                  Demo İzle
+                </button>
+              </Stagger>
+            </div>
 
-        {!uploadedFile ? (
-          /* Etkinlik Bilgileri ve Fotoğraf Yükleme */
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                  <Camera className="w-8 h-8 text-blue-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {currentEvent?.name || 'Etkinlik'}
-                </h2>
-                <p className="text-gray-600 mb-4">
-                  {currentEvent?.description || 'Etkinlik fotoğraflarınızı paylaşın'}
-                </p>
-                <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                  <Camera className="w-4 h-4 mr-2" />
-                  Etkinlik Kodu: {currentEvent?.code}
-                </div>
-              </div>
-
-              {/* Etkinlik İstatistikleri */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {currentEvent?.currentFiles || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Yüklenen Fotoğraf</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {currentEvent?.maxFiles ? `${currentEvent.maxFiles}` : '∞'}
-                  </div>
-                  <div className="text-sm text-gray-600">Maksimum Limit</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {currentEvent?.isActive ? 'Aktif' : 'Pasif'}
-                  </div>
-                  <div className="text-sm text-gray-600">Durum</div>
-                </div>
-              </div>
-
-              {/* Fotoğraf Yükleme Bölümü */}
-              <DragDropUpload
-                onFilesSelected={handleFileUpload}
-                isUploading={isUploading}
-                maxFiles={currentEvent?.maxFiles || 10}
-                maxFileSize={currentEvent?.maxFileSize || 50}
-                acceptedTypes={['image/*', 'video/*', 'audio/*']}
-                className="mb-6"
-              />
-
-              {/* Upload Progress */}
-              {isUploading && (
-                <div className="mb-6">
-                  <ProgressBar
-                    progress={uploadProgress}
-                    showPercentage={true}
-                    size="lg"
-                    color="primary"
-                    animated={true}
-                  />
-                </div>
-              )}
-
-              {/* QR Kod ve Paylaşım */}
-              {currentEvent && (
-                <div className="mt-8 grid md:grid-cols-2 gap-8">
-                  {/* QR Kod */}
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Etkinlik QR Kodu</h3>
-                    <div id="qr-code" className="inline-block p-4 bg-white rounded-xl shadow-lg border">
-                      <QRCodeSVG
-                        value={`${window.location.origin}/u/${currentEvent.code}`}
-                        size={200}
-                        level="M"
-                        includeMargin={true}
-                      />
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Etkinlik Kodu: <span className="font-mono font-semibold">{currentEvent.code}</span>
-                    </p>
-                    <button
-                      onClick={downloadQR}
-                      className="mt-3 inline-flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>QR Kod İndir</span>
-                    </button>
-                  </div>
-
-                  {/* Paylaşım Bilgileri */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Paylaşım Bilgileri</h3>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Etkinlik URL'si
-                      </label>
-                      <div className="flex">
-                        <input
-                          type="text"
-                          value={`${window.location.origin}/u/${currentEvent.code}`}
-                          readOnly
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm font-mono"
-                        />
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/u/${currentEvent.code}`)
-                            toast({
-                              title: 'Kopyalandı!',
-                              description: 'URL panoya kopyalandı',
-                              variant: 'success'
-                            })
-                          }}
-                          className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-200 transition-colors"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
+            {/* Hero Image */}
+            <div className="relative max-w-4xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">QR Kod Okutun</h3>
+                    <p className="text-gray-600 mb-6">Misafirler masadaki QR kodu okutup anında fotoğraf yükleyebilir</p>
+                    <div className="bg-gray-100 rounded-lg p-4 text-center">
+                      <div className="w-32 h-32 bg-white rounded-lg mx-auto mb-4 flex items-center justify-center">
+                        <QrCode className="w-16 h-16 text-gray-400" />
                       </div>
+                      <p className="text-sm text-gray-500">Masa 5 - QR Kod</p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/u/${currentEvent.code}`)
-                          toast({
-                            title: 'Kopyalandı!',
-                            description: 'URL panoya kopyalandı',
-                            variant: 'success'
-                          })
-                        }}
-                        className="flex items-center justify-center space-x-2 py-2 px-4 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
-                      >
-                        <Copy className="w-4 h-4" />
-                        <span>URL Kopyala</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => window.open(`${window.location.origin}/u/${currentEvent.code}`, '_blank')}
-                        className="flex items-center justify-center space-x-2 py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <Camera className="w-4 h-4" />
-                        <span>Etkinlik Sayfası</span>
-                      </button>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Fotoğrafları Görün</h3>
+                    <p className="text-gray-600 mb-6">Tüm fotoğrafları canlı olarak görün ve organize edin</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1,2,3,4].map((i) => (
+                        <div key={i} className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
+                          <Camera className="w-8 h-8 text-gray-400" />
+                        </div>
+                      ))}
                     </div>
-
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                    >
-                      <Lock className="w-4 h-4" />
-                      <span>Çıkış Yap</span>
-                    </button>
                   </div>
                 </div>
-              )}
-
-              {/* Etkinlik Kuralları */}
-              {currentEvent && (
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Etkinlik Kuralları</h4>
-                  <ul className="text-sm text-yellow-700 space-y-1">
-                    {currentEvent.maxFiles && (
-                      <li>• Maksimum {currentEvent.maxFiles} fotoğraf yükleyebilirsiniz</li>
-                    )}
-                    {currentEvent.maxFileSize && (
-                      <li>• Her fotoğraf maksimum {currentEvent.maxFileSize}MB olabilir</li>
-                    )}
-                    <li>• Tüm medya dosyaları kabul edilir (jpg, png, gif, mp4, vb.)</li>
-                    {currentEvent.expiresAt && (
-                      <li>• Etkinlik {formatDate(currentEvent.expiresAt)} tarihinde sona erer</li>
-                    )}
-                  </ul>
-                </div>
-              )}
+              </div>
             </div>
           </div>
-        ) : (
-          /* Fotoğraf Yükleme Başarılı */
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-                  <Camera className="w-8 h-8 text-green-600" />
+        </div>
+      </section>
+
+      {/* Event Types */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Her Etkinlik İçin Mükemmel</h2>
+            <p className="text-xl text-gray-600">Düğünden iş toplantısına kadar her türlü etkinlikte kullanın</p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {eventTypes.map((event, index) => (
+              <HoverScale key={index}>
+                <div className={`p-4 rounded-lg text-center ${event.color} hover:shadow-lg transition-all`}>
+                  <div className="text-3xl mb-2">{event.icon}</div>
+                  <div className="font-semibold">{event.name}</div>
                 </div>
-                <h2 className="text-2xl font-semibold mb-2">
-                  Fotoğraf Yüklendi! 🎉
-                </h2>
-                <p className="text-gray-600">
-                  Fotoğrafınız başarıyla yüklendi ve etkinlik albümüne eklendi
-                </p>
+              </HoverScale>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Neden Momento?</h2>
+            <p className="text-xl text-gray-600">Etkinliklerinizi kolaylaştıran özellikler</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <FadeIn key={index} delay={index * 100}>
+                <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
+                  <div className={`w-16 h-16 ${feature.color} rounded-lg flex items-center justify-center text-white mb-4`}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.description}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Nasıl Çalışır?</h2>
+            <p className="text-xl text-gray-600">Sadece 3 adımda etkinliğinizi hazırlayın</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                step: "1",
+                title: "Etkinlik Oluşturun",
+                description: "Etkinlik bilgilerinizi girin ve masa sayısını belirleyin",
+                icon: <Users className="w-8 h-8" />
+              },
+              {
+                step: "2",
+                title: "QR Kodları İndirin",
+                description: "Her masa için ayrı QR kod oluşturulur ve indirilir",
+                icon: <Download className="w-8 h-8" />
+              },
+              {
+                step: "3",
+                title: "Misafirler Yüklesin",
+                description: "QR kod okutup fotoğraf yükleyin, canlı galeride görün",
+                icon: <Camera className="w-8 h-8" />
+              }
+            ].map((step, index) => (
+              <FadeIn key={index} delay={index * 200}>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+                    {step.step}
+                  </div>
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    {step.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{step.title}</h3>
+                  <p className="text-gray-600">{step.description}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Müşterilerimiz Ne Diyor?</h2>
+            <p className="text-xl text-gray-600">Binlerce mutlu müşteri</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <FadeIn key={index} delay={index * 100}>
+                <div className="bg-white rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-4">"{testimonial.message}"</p>
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                      {testimonial.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                      <div className="text-sm text-gray-500">{testimonial.event}</div>
+                    </div>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Sıkça Sorulan Sorular</h2>
+            <p className="text-xl text-gray-600">Merak ettiğiniz her şey</p>
+          </div>
+          
+          <div className="space-y-6">
+            {faqs.map((faq, index) => (
+              <FadeIn key={index} delay={index * 100}>
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{faq.question}</h3>
+                  <p className="text-gray-600">{faq.answer}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-pink-500 to-purple-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Hemen Başlayın</h2>
+          <p className="text-xl text-pink-100 mb-8">Etkinliğinizi unutulmaz kılın</p>
+          <button 
+            onClick={() => setIsPricingOpen(true)}
+            className="bg-white text-pink-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
+          >
+            Paketleri Görüntüle
+            <ArrowRight className="w-5 h-5 ml-2 inline" />
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">M</span>
+                </div>
+                <span className="text-xl font-bold">Momento</span>
               </div>
+              <p className="text-gray-400">Etkinliklerinizi unutulmaz kılın</p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Ürün</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#features" className="hover:text-white transition-colors">Özellikler</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors">Fiyatlar</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Demo</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Destek</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#faq" className="hover:text-white transition-colors">SSS</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">İletişim</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Yardım</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">İletişim</h3>
+              <p className="text-gray-400">info@momento.com</p>
+              <p className="text-gray-400">+90 555 123 45 67</p>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 Momento. Tüm hakları saklıdır.</p>
+          </div>
+        </div>
+      </footer>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold text-green-900 mb-2">Teşekkürler!</h3>
-                  <p className="text-sm text-green-800">
-                    Fotoğrafınız güvenle Google Drive'da saklandı. 
-                    Etkinlik organizatörü tüm fotoğrafları görebilir.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => {
-                    // Sadece upload state'ini sıfırla, sayfayı yenileme
-                    setUploadedFile(null)
-                    setIsUploading(false)
-                  }}
-                  className="w-full bg-brand-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-brand-primary/90 transition-colors"
+      {/* Pricing Modal */}
+      {isPricingOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-900">Fiyatlandırma</h2>
+                <button 
+                  onClick={() => setIsPricingOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  <Camera className="w-5 h-5 inline mr-2" />
-                  Başka Fotoğraf Yükle
+                  <X className="w-6 h-6" />
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Özellikler */}
-        <div className="mt-16 grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Camera className="w-6 h-6 text-blue-600" />
+            
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {pricingPlans.map((plan, index) => (
+                  <div key={index} className={`relative rounded-xl p-6 border-2 ${plan.popular ? 'border-pink-500 bg-pink-50' : 'border-gray-200'}`}>
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-pink-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                          En Popüler
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="text-center mb-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                      <div className="text-4xl font-bold text-gray-900 mb-2">
+                        ₺{plan.price}
+                        <span className="text-lg text-gray-500">/etkinlik</span>
+                      </div>
+                      <p className="text-gray-600">{plan.photos} fotoğraf hakkı</p>
+                    </div>
+                    
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, featureIndex) => (
+                        <li key={featureIndex} className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-500 mr-3" />
+                          <span className="text-gray-600">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <button className={`w-full py-3 rounded-lg font-semibold transition-all ${
+                      plan.popular 
+                        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700' 
+                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    }`}>
+                      {plan.popular ? 'Hemen Başla' : 'Seç'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Kolay Yükleme</h3>
-            <p className="text-gray-600">
-              QR kod okutarak anında fotoğraf yükleme. Uygulama gerekmez.
-            </p>
-          </div>
-          
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Share2 className="w-6 h-6 text-green-600" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Güvenli Paylaşım</h3>
-            <p className="text-gray-600">
-              Google Drive ile güvenli saklama ve organize edilmiş dosyalar.
-            </p>
-          </div>
-          
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Anında Erişim</h3>
-            <p className="text-gray-600">
-              Tüm katılımcılar aynı anda fotoğraf yükleyebilir ve paylaşabilir.
-            </p>
           </div>
         </div>
-
-        {/* Analytics Link */}
-        <div className="mt-12 text-center">
-          <a
-            href="/analytics"
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors"
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span>Analytics Dashboard'u Görüntüle</span>
-          </a>
-        </div>
-      </ResponsiveContainer>
-      
-      {/* PWA Install Banner */}
-      <PWAInstallBanner />
-    </main>
-    </PageTransition>
+      )}
+    </div>
   )
 }
