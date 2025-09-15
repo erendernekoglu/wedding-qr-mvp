@@ -573,6 +573,24 @@ export const kvDb = {
         .filter((activity): activity is Activity => activity !== null && activity.action === action)
         .slice(0, limit)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    },
+    
+    findMany: async () => {
+      const allActivityIds = await redis.lrange('activity:all', 0, -1)
+      if (!allActivityIds || allActivityIds.length === 0) {
+        return []
+      }
+      
+      const activities = await Promise.all(
+        allActivityIds.map(async (id) => {
+          const activity = await redis.get<Activity>(`activity:${id}`)
+          return activity
+        })
+      )
+      
+      return activities
+        .filter((activity): activity is Activity => activity !== null)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     }
   },
 
@@ -637,6 +655,13 @@ export const kvDb = {
       return users
         .filter((user): user is User => user !== null)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    }
+  },
+
+  // Redis operations
+  redis: {
+    del: async (key: string) => {
+      return await redis.del(key)
     }
   },
 
