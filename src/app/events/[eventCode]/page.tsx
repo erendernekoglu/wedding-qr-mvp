@@ -36,6 +36,10 @@ interface EventData {
   tableCount?: number
   template?: string
   customMessage?: string
+  tableNames?: string[]
+  guestCount?: number
+  totalUploads?: number
+  lastUploadAt?: string
 }
 
 export default function EventViewPage() {
@@ -83,12 +87,12 @@ export default function EventViewPage() {
 
       setEventData(result.data)
       
-      // İstatistikleri hesapla
+      // Gerçek istatistikleri hesapla
       setStats({
-        totalPhotos: result.data.currentFiles || 0,
-        totalGuests: Math.floor(Math.random() * 50) + 10, // Mock data
+        totalPhotos: result.data.totalUploads || result.data.currentFiles || 0,
+        totalGuests: result.data.guestCount || 0,
         totalTables: result.data.tableCount || 5,
-        recentUploads: Math.floor(Math.random() * 10) + 1 // Mock data
+        recentUploads: result.data.lastUploadAt ? 1 : 0
       })
       
     } catch (error) {
@@ -113,7 +117,16 @@ export default function EventViewPage() {
   }
 
   const handleEditEvent = () => {
-    router.push(`/events/${eventCode}/edit`)
+    // Kullanıcı admin mi kontrol et
+    if (user?.isAdmin) {
+      router.push(`/admin/events/${eventCode}/edit`)
+    } else {
+      toast({
+        title: 'Yetkisiz Erişim',
+        description: 'Etkinlik düzenleme yetkiniz yok.',
+        variant: 'error'
+      })
+    }
   }
 
   const handleShareEvent = () => {
@@ -352,12 +365,22 @@ export default function EventViewPage() {
                     <span className="text-sm font-medium">Fotoğraf Galerisi</span>
                   </button>
                   
+                  {user?.isAdmin && (
+                    <button
+                      onClick={handleEditEvent}
+                      className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Settings className="w-5 h-5 text-blue-500" />
+                      <span className="text-sm font-medium">Etkinlik Düzenle</span>
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={handleEditEvent}
+                    onClick={() => router.push(`/events/${eventCode}/tables`)}
                     className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
                   >
-                    <Settings className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium">Etkinlik Düzenle</span>
+                    <Users className="w-5 h-5 text-green-500" />
+                    <span className="text-sm font-medium">Masa İsimlerini Düzenle</span>
                   </button>
                   
                   <button

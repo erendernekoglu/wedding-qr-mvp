@@ -39,9 +39,13 @@ export async function GET(req: NextRequest, { params }: { params: { eventCode: s
           eventDate: event.eventDate,
           eventTime: event.eventTime,
           location: event.location,
-          tableCount: event.tableCount,
+          tableCount: event.tableCount || 5,
           template: event.template,
-          customMessage: event.customMessage
+          customMessage: event.customMessage,
+          tableNames: event.tableNames || Array.from({ length: event.tableCount || 5 }, (_, i) => `Masa ${i + 1}`),
+          guestCount: event.guestCount || 0,
+          totalUploads: event.totalUploads || event.currentFiles || 0,
+          lastUploadAt: event.lastUploadAt
         }
       }),
       {

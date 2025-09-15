@@ -31,6 +31,7 @@ interface EventData {
   tableCount?: number
   template?: string
   customMessage?: string
+  tableNames?: string[]
 }
 
 export default function EventQRPage() {
@@ -156,6 +157,7 @@ export default function EventQRPage() {
   }
 
   const tableCount = eventData.tableCount || 5
+  const tableNames = eventData.tableNames || Array.from({ length: tableCount }, (_, i) => `Masa ${i + 1}`)
   const shareUrl = `${window.location.origin}/u/${eventCode}`
 
   return (
@@ -197,7 +199,7 @@ export default function EventQRPage() {
           {Array.from({ length: tableCount }, (_, index) => (
             <FadeIn key={index} delay={index * 100}>
               <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Masa {index + 1}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{tableNames[index] || `Masa ${index + 1}`}</h3>
                 <div className="mb-4">
                   <QRCode
                     id={`qr-code-${index}`}

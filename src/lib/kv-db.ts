@@ -69,6 +69,10 @@ interface Event {
   tableCount?: number
   template?: string
   customMessage?: string
+  tableNames?: string[]
+  guestCount?: number
+  totalUploads?: number
+  lastUploadAt?: string
 }
 
 interface EventUsage {
