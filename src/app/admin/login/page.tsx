@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAdminAuth, AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Shield, 
   Eye, 
@@ -11,7 +11,7 @@ import {
   Loader2
 } from 'lucide-react'
 
-export default function AdminLogin() {
+function AdminLogin() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,7 +22,7 @@ export default function AdminLogin() {
   const [success, setSuccess] = useState('')
   
   const router = useRouter()
-  const { login } = useAuth()
+  const { login } = useAdminAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +49,7 @@ export default function AdminLogin() {
         
         // Admin paneline yönlendir
         setTimeout(() => {
-          router.push('/admin')
+          window.location.href = '/admin'
         }, 1000)
       } else {
         setError(data.error || 'Giriş başarısız')
@@ -211,5 +211,13 @@ export default function AdminLogin() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AdminLoginPage() {
+  return (
+    <AdminAuthProvider>
+      <AdminLogin />
+    </AdminAuthProvider>
   )
 }
