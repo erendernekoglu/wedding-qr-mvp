@@ -109,6 +109,7 @@ interface User {
   isAdmin: boolean
   createdAt: string
   lastLoginAt?: string
+  passwordHash?: string
 }
 
 export const kvDb = {

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Search, 
   Filter, 
@@ -44,7 +45,7 @@ interface EventStats {
   totalUsers: number
 }
 
-export default function AdminEvents() {
+function AdminEvents() {
   const [events, setEvents] = useState<Event[]>([])
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
   const [stats, setStats] = useState<EventStats>({
@@ -556,5 +557,13 @@ export default function AdminEvents() {
         )}
       </div>
     </AdminLayout>
+  )
+}
+
+export default function AdminEventsPage() {
+  return (
+    <AdminAuthProvider>
+      <AdminEvents />
+    </AdminAuthProvider>
   )
 }

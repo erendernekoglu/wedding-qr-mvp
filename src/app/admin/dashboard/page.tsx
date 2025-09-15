@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Users, 
   Calendar, 
@@ -44,7 +45,7 @@ interface TopEvent {
   createdAt: string
 }
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     totalEvents: 0,
@@ -323,5 +324,13 @@ export default function AdminDashboard() {
         </div>
       </div>
     </AdminLayout>
+  )
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <AdminAuthProvider>
+      <AdminDashboard />
+    </AdminAuthProvider>
   )
 }

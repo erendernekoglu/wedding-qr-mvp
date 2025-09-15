@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Settings as SettingsIcon, 
   Save, 
@@ -75,7 +76,7 @@ interface SystemStats {
   driveStatus: 'connected' | 'disconnected'
 }
 
-export default function AdminSettings() {
+function AdminSettings() {
   const [settings, setSettings] = useState<SystemSettings>({
     siteName: 'Momento',
     siteDescription: 'Etkinlik fotoğraf paylaşım platformu',
@@ -799,5 +800,13 @@ export default function AdminSettings() {
         </div>
       </div>
     </AdminLayout>
+  )
+}
+
+export default function AdminSettingsPage() {
+  return (
+    <AdminAuthProvider>
+      <AdminSettings />
+    </AdminAuthProvider>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useAdminAuth } from '@/contexts/AdminAuthContext'
 import { 
   LayoutDashboard, 
   Users, 
@@ -41,30 +41,28 @@ const navigation = [
 export default function AdminLayout({ children, title, description }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const { user, logout } = useAuth()
+  const { admin, logout, isAdmin } = useAdminAuth()
   const router = useRouter()
   const { toast } = useToast()
 
   useEffect(() => {
     // Admin yetkisi kontrolü
-    if (!user) {
-      router.push('/login')
+    if (!admin) {
+      router.push('/admin/login')
       return
     }
-
-    // Geçici olarak tüm giriş yapmış kullanıcılara admin erişimi ver
-    // TODO: Gerçek admin kontrolü için user.isAdmin kontrolü yapılacak
-    if (user) {
-      setIsLoading(false)
+    
+    if (!isAdmin) {
+      router.push('/admin/login')
       return
     }
-
+    
     setIsLoading(false)
-  }, [user, router, toast])
+  }, [admin, isAdmin, router])
 
   const handleLogout = () => {
     logout()
-    router.push('/login')
+    router.push('/admin/login')
   }
 
   if (isLoading) {
@@ -140,12 +138,12 @@ export default function AdminLayout({ children, title, description }: AdminLayou
               <div className="flex-shrink-0">
                 <div className="h-8 w-8 rounded-full bg-pink-500 flex items-center justify-center">
                   <span className="text-sm font-medium text-white">
-                    {user?.name?.charAt(0) || 'A'}
+                    {admin?.name?.charAt(0) || 'A'}
                   </span>
                 </div>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">{user?.name}</p>
+                <p className="text-sm font-medium text-gray-700">{admin?.name}</p>
                 <p className="text-xs text-gray-500">Admin</p>
               </div>
             </div>

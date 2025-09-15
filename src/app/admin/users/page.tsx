@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Search, 
   Filter, 
@@ -37,7 +38,7 @@ interface UserStats {
   activeUsersToday: number
 }
 
-export default function AdminUsers() {
+function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [stats, setStats] = useState<UserStats>({
@@ -416,5 +417,13 @@ export default function AdminUsers() {
         )}
       </div>
     </AdminLayout>
+  )
+}
+
+export default function AdminUsersPage() {
+  return (
+    <AdminAuthProvider>
+      <AdminUsers />
+    </AdminAuthProvider>
   )
 }

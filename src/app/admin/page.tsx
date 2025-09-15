@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 export default function AdminPage() {
   const router = useRouter()
@@ -11,11 +12,13 @@ export default function AdminPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-        <p className="text-lg text-gray-700">Yönlendiriliyor...</p>
+    <AdminAuthProvider>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-lg text-gray-700">Yönlendiriliyor...</p>
+        </div>
       </div>
-    </div>
+    </AdminAuthProvider>
   )
 }
