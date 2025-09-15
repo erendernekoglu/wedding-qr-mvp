@@ -37,7 +37,31 @@ Etkinliklerinizin anılarını kolayca paylaşın. Düğün, şirket etkinliği,
 - **Styling**: Tailwind CSS
 - **Storage**: Google Drive API
 - **Deployment**: Vercel
-- **Database**: Memory-based (Production'da PostgreSQL)
+- **Database**: Redis/KV (Upstash)
+
+## 🔧 Kurulum
+
+### Gereksinimler
+- Node.js 18+
+- npm veya yarn
+- Redis hesabı (Upstash)
+- Google Drive API anahtarı
+
+### Adımlar
+1. Projeyi klonlayın
+2. `npm install` ile bağımlılıkları yükleyin
+3. `.env.local` dosyasını oluşturun ve gerekli değişkenleri ekleyin
+4. `npm run dev` ile geliştirme sunucusunu başlatın
+
+### Admin Kullanıcısı Oluşturma
+```bash
+npm run seed:admin
+```
+
+Bu komut admin@momento.com kullanıcısını oluşturur:
+- **E-posta**: admin@momento.com
+- **Şifre**: admin123
+- **Yetki**: Admin
 
 ## 📈 Roadmap
 
