@@ -133,7 +133,7 @@ export default function LandingPage() {
             
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Özellikler</a>
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Fiyatlar</a>
+              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors" onClick={(e) => { e.preventDefault(); setIsPricingOpen(true); }}>Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">SSS</a>
               <button 
                 onClick={() => setIsPricingOpen(true)}
@@ -203,11 +203,34 @@ export default function LandingPage() {
                     <h3 className="text-2xl font-bold text-gray-900 mb-4">Fotoğrafları Görün</h3>
                     <p className="text-gray-600 mb-6">Tüm fotoğrafları canlı olarak görün ve organize edin</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {[1,2,3,4].map((i) => (
-                        <div key={i} className="bg-gray-200 rounded-lg aspect-square flex items-center justify-center">
-                          <Camera className="w-8 h-8 text-gray-400" />
-                        </div>
-                      ))}
+                      <div className="rounded-lg aspect-square relative overflow-hidden bg-gradient-to-br from-pink-100 to-rose-200">
+                        <div className="absolute inset-0 bg-cover bg-center" style={{
+                          backgroundImage: `url('https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=400&fit=crop&crop=center')`
+                        }}></div>
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <div className="absolute bottom-1 left-1 text-xs text-white font-semibold bg-black/50 px-2 py-1 rounded">Düğün</div>
+                      </div>
+                      <div className="rounded-lg aspect-square relative overflow-hidden bg-gradient-to-br from-blue-100 to-cyan-200">
+                        <div className="absolute inset-0 bg-cover bg-center" style={{
+                          backgroundImage: `url('https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&h=400&fit=crop&crop=center')`
+                        }}></div>
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <div className="absolute bottom-1 left-1 text-xs text-white font-semibold bg-black/50 px-2 py-1 rounded">Doğum Günü</div>
+                      </div>
+                      <div className="rounded-lg aspect-square relative overflow-hidden bg-gradient-to-br from-green-100 to-emerald-200">
+                        <div className="absolute inset-0 bg-cover bg-center" style={{
+                          backgroundImage: `url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=400&fit=crop&crop=center')`
+                        }}></div>
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <div className="absolute bottom-1 left-1 text-xs text-white font-semibold bg-black/50 px-2 py-1 rounded">Mezuniyet</div>
+                      </div>
+                      <div className="rounded-lg aspect-square relative overflow-hidden bg-gradient-to-br from-purple-100 to-pink-200">
+                        <div className="absolute inset-0 bg-cover bg-center" style={{
+                          backgroundImage: `url('https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=400&fit=crop&crop=center')`
+                        }}></div>
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        <div className="absolute bottom-1 left-1 text-xs text-white font-semibold bg-black/50 px-2 py-1 rounded">Parti</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -395,7 +418,7 @@ export default function LandingPage() {
               <h3 className="font-semibold mb-4">Ürün</h3>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#features" className="hover:text-white transition-colors">Özellikler</a></li>
-                <li><a href="#pricing" className="hover:text-white transition-colors">Fiyatlar</a></li>
+                <li><a href="#pricing" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); setIsPricingOpen(true); }}>Fiyatlar</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Demo</a></li>
               </ul>
             </div>
