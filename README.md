@@ -63,7 +63,7 @@ curl -X POST https://momentobeta.vercel.app/api/admin/create-admin \
 
 Bu komut admin@momento.com kullanıcısını oluşturur:
 - **E-posta**: admin@momento.com
-- **Şifre**: admin123
+- **Şifre**: ---
 - **Yetki**: Admin
 
 ## 📈 Roadmap
