@@ -183,7 +183,7 @@ export default function DashboardPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-24 h-24"
+                className="w-28 h-28"
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
