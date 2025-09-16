@@ -2,11 +2,11 @@ import { NextRequest } from 'next/server'
 import { kvDb } from '@/lib/kv-db'
 import { createErrorResponse } from '@/lib/error-handler'
 
-export async function PUT(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      eventCode,
+      eventId,
       name,
       description,
       eventDate,
@@ -18,8 +18,9 @@ export async function PUT(req: NextRequest) {
       isActive
     } = body
 
-    // Etkinliği bul
-    const event = await kvDb.event.findUnique({ code: eventCode })
+    // Etkinliği bul - tüm eventleri al ve ID'ye göre bul
+    const events = await kvDb.event.findMany()
+    const event = events.find(e => e.id === eventId)
     
     if (!event) {
       return new Response(
@@ -35,7 +36,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Etkinliği güncelle
-    const updatedEvent = await kvDb.event.update(eventCode, {
+    const updatedEvent = await kvDb.event.update(event.code, {
       name,
       description,
       maxFiles,
@@ -51,7 +52,7 @@ export async function PUT(req: NextRequest) {
     await kvDb.activity.create({
       userId: 'admin',
       action: 'event_updated',
-      eventCode: eventCode,
+      eventCode: event.code,
       userAgent: 'admin',
       ipAddress: 'admin'
     })
