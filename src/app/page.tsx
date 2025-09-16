@@ -135,12 +135,20 @@ export default function LandingPage() {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Özellikler</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors" onClick={(e) => { e.preventDefault(); setIsPricingOpen(true); }}>Fiyatlar</a>
               <a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">SSS</a>
-              <button 
-                onClick={() => window.location.href = '/register'}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
-              >
-                Hemen Başla
-              </button>
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => window.location.href = '/login'}
+                  className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100"
+                >
+                  Giriş Yap
+                </button>
+                <button 
+                  onClick={() => window.location.href = '/register'}
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
+                >
+                  Hemen Başla
+                </button>
+              </div>
             </div>
 
             <button 
@@ -152,6 +160,31 @@ export default function LandingPage() {
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-b border-gray-200 shadow-lg">
+          <div className="px-4 py-4 space-y-4">
+            <a href="#features" className="block text-gray-600 hover:text-gray-900 transition-colors py-2">Özellikler</a>
+            <a href="#pricing" className="block text-gray-600 hover:text-gray-900 transition-colors py-2" onClick={(e) => { e.preventDefault(); setIsPricingOpen(true); setIsMenuOpen(false); }}>Fiyatlar</a>
+            <a href="#faq" className="block text-gray-600 hover:text-gray-900 transition-colors py-2">SSS</a>
+            <div className="pt-4 border-t border-gray-200 space-y-3">
+              <button 
+                onClick={() => { window.location.href = '/login'; setIsMenuOpen(false); }}
+                className="w-full text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-lg hover:bg-gray-100 text-left"
+              >
+                Giriş Yap
+              </button>
+              <button 
+                onClick={() => { window.location.href = '/register'; setIsMenuOpen(false); }}
+                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all"
+              >
+                Hemen Başla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="pt-20 pb-16 bg-gradient-to-br from-pink-50 via-white to-purple-50">
