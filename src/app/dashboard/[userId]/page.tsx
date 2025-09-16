@@ -188,7 +188,7 @@ export default function UserDashboardPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-20 h-20"
+                className="w-16 h-16"
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>

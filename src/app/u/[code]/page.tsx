@@ -96,19 +96,16 @@ export default function GuestUploadPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-24 h-24"
+                className="w-20 h-20"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-32"
+                className="h-36"
               />
             </div>
           </div>
           
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Anı Yükle
-          </h1>
           
           <p className="text-gray-600 font-medium">
             Uygulama yok, giriş yok. Sadece yükle.
