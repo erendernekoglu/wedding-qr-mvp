@@ -96,12 +96,12 @@ export default function GuestUploadPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-32 h-32"
+                className="w-24 h-24"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-28"
+                className="h-32"
               />
             </div>
           </div>

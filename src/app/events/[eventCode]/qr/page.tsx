@@ -183,12 +183,12 @@ export default function EventQRPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-28 h-28"
+                className="w-20 h-20"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-24"
+                className="h-28"
               />
             </div>
           </div>
