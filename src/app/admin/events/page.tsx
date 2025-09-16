@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 import { 
   Search, 
   Filter, 
@@ -511,6 +510,14 @@ function AdminEvents() {
                     </div>
                     
                     <div className="flex items-center space-x-2">
+                      <a
+                        href={`/admin/events/${event.id}`}
+                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-md"
+                        title="Etkinliği düzenle"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </a>
+                      
                       <a
                         href={`/events/${event.code}`}
                         target="_blank"
