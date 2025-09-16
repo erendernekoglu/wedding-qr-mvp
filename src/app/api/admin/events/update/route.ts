@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Etkinliği güncelle
-    const updatedEvent = await kvDb.event.update(event.code, {
+    // Etkinliği güncelle - ID ile güncelle
+    const updatedEvent = await kvDb.event.update(event.id, {
       name,
       description,
       maxFiles,
