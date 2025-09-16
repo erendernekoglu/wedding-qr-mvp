@@ -58,7 +58,7 @@ Etkinliklerinizin anılarını kolayca paylaşın. Düğün, şirket etkinliği,
 # API ile admin kullanıcısı oluşturma
 curl -X POST https://momentobeta.vercel.app/api/admin/create-admin \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@momento.com","password":"admin123","name":"Admin User"}'
+  -d '{"email":"admin@momento.com","password":"---","name":"Admin User"}'
 ```
 
 Bu komut admin@momento.com kullanıcısını oluşturur:
