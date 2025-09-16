@@ -128,12 +128,12 @@ export default function LandingPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-12 h-12"
+                className="w-16 h-16"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-8"
+                className="h-12"
               />
             </div>
             
@@ -449,12 +449,12 @@ export default function LandingPage() {
                 <img 
                   src="/logos/logo.png" 
                   alt="Momento Logo" 
-                  className="w-12 h-12"
+                  className="w-16 h-16"
                 />
                 <img 
                   src="/logos/yazı.png" 
                   alt="Momento" 
-                  className="h-8"
+                  className="h-12"
                 />
               </div>
               <p className="text-gray-400">Etkinliklerinizi unutulmaz kılın</p>
