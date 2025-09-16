@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ToastProvider } from '@/components/ui/Toast'
 import { Toaster } from '@/components/ui/Toast'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { AdminAuthProvider } from '@/contexts/AdminAuthContext'
 
 export const metadata = {
   title: 'Momento - Anı Paylaşım Uygulaması',
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               {/* Standard Icons */}
               <link rel="icon" type="image/svg+xml" sizes="32x32" href="/icon-72x72.svg" />
               <link rel="icon" type="image/svg+xml" sizes="16x16" href="/icon-72x72.svg" />
+              <link rel="shortcut icon" href="/icon-72x72.svg" />
               <link rel="manifest" href="/manifest.json" />
               
               {/* Splash Screens */}
@@ -46,10 +48,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </head>
       <body className="min-h-screen bg-white text-slate-900 antialiased">
         <AuthProvider>
-          <ToastProvider>
-            {children}
-            <Toaster />
-          </ToastProvider>
+          <AdminAuthProvider>
+            <ToastProvider>
+              {children}
+              <Toaster />
+            </ToastProvider>
+          </AdminAuthProvider>
         </AuthProvider>
       </body>
     </html>
