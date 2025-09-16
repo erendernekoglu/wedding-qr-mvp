@@ -14,7 +14,8 @@ import {
   Download,
   Share2,
   Eye,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react'
 import { FadeIn, SlideIn } from '@/components/Animations'
 import { useToast } from '@/components/ui/Toast'
@@ -70,12 +71,25 @@ export default function EventViewPage() {
     }
   }, [isAuthenticated, authLoading, router, eventCode])
 
+  // Otomatik yenileme (5 dakikada bir)
+  useEffect(() => {
+    if (!isAuthenticated || !eventData) return
+
+    const interval = setInterval(() => {
+      loadEventData()
+    }, 300000) // 5 dakika
+
+    return () => clearInterval(interval)
+  }, [isAuthenticated, eventData])
+
   const loadEventData = async () => {
     try {
       setLoading(true)
       
-      // Etkinlik bilgilerini getir
-      const response = await fetch(`/api/events/${eventCode}`)
+      // Etkinlik bilgilerini getir - cache busting ile
+      const response = await fetch(`/api/events/${eventCode}?t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
@@ -139,6 +153,15 @@ export default function EventViewPage() {
     })
   }
 
+  const handleRefresh = async () => {
+    await loadEventData()
+    toast({
+      title: 'Yenilendi!',
+      description: 'Etkinlik verileri güncellendi.',
+      variant: 'success'
+    })
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -190,7 +213,15 @@ export default function EventViewPage() {
               </button>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleRefresh}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Etkinlik verilerini yenile"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              
               <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold">M</span>
               </div>

@@ -84,7 +84,9 @@ export default function UserDashboardPage() {
     
     try {
       setLoading(true)
-      const response = await fetch(`/api/dashboard?userId=${user.id}`)
+      const response = await fetch(`/api/dashboard?userId=${user.id}&t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

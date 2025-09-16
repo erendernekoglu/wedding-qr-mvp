@@ -86,7 +86,9 @@ export default function EventGalleryPage() {
 
   const loadEventData = async () => {
     try {
-      const response = await fetch(`/api/events/${eventCode}`)
+      const response = await fetch(`/api/events/${eventCode}?t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
