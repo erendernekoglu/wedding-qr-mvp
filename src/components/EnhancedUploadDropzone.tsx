@@ -12,6 +12,7 @@ interface UploadItem {
   status: 'idle' | 'uploading' | 'done' | 'error'
   file: File
   preview?: string
+  isFromCamera?: boolean
 }
 
 interface EnhancedUploadDropzoneProps {
@@ -57,7 +58,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
   const onPickFiles = () => fileInputRef.current?.click()
   const onTakePhoto = () => cameraInputRef.current?.click()
 
-  const createUploadItem = (file: File): UploadItem => {
+  const createUploadItem = (file: File, fromCamera: boolean = false): UploadItem => {
     const id = `${file.name}-${file.size}-${Date.now()}`
     const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
     
@@ -68,9 +69,11 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
       progress: 0,
       status: 'idle',
       file,
-      preview
+      preview,
+      isFromCamera: fromCamera
     }
   }
+
 
   const uploadFile = async (item: UploadItem) => {
     try {
@@ -106,7 +109,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
     }
   }
 
-  const onFiles = async (files: FileList | null) => {
+  const onFiles = async (files: FileList | null, fromCamera: boolean = false) => {
     if (!files) return
     
     const fileList = Array.from(files)
@@ -114,7 +117,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
     
     // Tüm dosyaları önce ekle
     for (const file of fileList) {
-      const newItem = createUploadItem(file)
+      const newItem = createUploadItem(file, fromCamera)
       newItems.push(newItem)
       setItems(prev => [...prev, newItem])
     }
@@ -152,7 +155,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    onFiles(e.dataTransfer.files)
+    onFiles(e.dataTransfer.files, false)
   }
 
   const getStatusIcon = (status: UploadItem['status']) => {
@@ -211,7 +214,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
         accept="image/*,video/*" 
         multiple 
         className="hidden" 
-        onChange={e => onFiles(e.target.files)} 
+        onChange={e => onFiles(e.target.files, false)} 
       />
       <input 
         ref={cameraInputRef} 
@@ -219,7 +222,7 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
         accept="image/*" 
         capture="environment"
         className="hidden" 
-        onChange={e => onFiles(e.target.files)} 
+        onChange={e => onFiles(e.target.files, true)} 
       />
 
       {/* Upload Buttons */}
@@ -280,6 +283,9 @@ export default function EnhancedUploadDropzone({ albumCode, tableNumber = '1', o
                         src={item.preview} 
                         alt={item.name}
                         className="w-16 h-16 object-cover rounded-lg"
+                        style={{
+                          transform: item.isFromCamera ? 'scaleX(-1)' : 'none'
+                        }}
                       />
                     </div>
                   ) : (
