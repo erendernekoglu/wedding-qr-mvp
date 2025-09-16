@@ -257,12 +257,12 @@ export default function EventGalleryPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-16 h-16"
+                className="w-24 h-24"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-12"
+                className="h-20"
               />
             </div>
           </div>
