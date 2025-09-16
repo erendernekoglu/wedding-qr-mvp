@@ -181,12 +181,12 @@ export default function PurchaseEventPage() {
               <img 
                 src="/logos/logo.png" 
                 alt="Momento Logo" 
-                className="w-8 h-8"
+                className="w-12 h-12"
               />
               <img 
                 src="/logos/yazı.png" 
                 alt="Momento" 
-                className="h-6"
+                className="h-8"
               />
             </div>
           </div>
