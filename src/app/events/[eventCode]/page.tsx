@@ -222,10 +222,16 @@ export default function EventViewPage() {
                 <RefreshCw className="w-4 h-4" />
               </button>
               
-              <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">M</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Momento</span>
+              <img 
+                src="/logos/logo.png" 
+                alt="Momento Logo" 
+                className="w-8 h-8"
+              />
+              <img 
+                src="/logos/yazı.png" 
+                alt="Momento" 
+                className="h-6"
+              />
             </div>
           </div>
         </div>

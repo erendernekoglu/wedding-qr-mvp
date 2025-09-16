@@ -124,11 +124,17 @@ export default function LandingPage() {
       <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">M</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Momento</span>
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/logos/logo.png" 
+                alt="Momento Logo" 
+                className="w-8 h-8"
+              />
+              <img 
+                src="/logos/yazı.png" 
+                alt="Momento" 
+                className="h-6"
+              />
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
@@ -439,11 +445,17 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">M</span>
-                </div>
-                <span className="text-xl font-bold">Momento</span>
+              <div className="flex items-center space-x-3 mb-4">
+                <img 
+                  src="/logos/logo.png" 
+                  alt="Momento Logo" 
+                  className="w-8 h-8"
+                />
+                <img 
+                  src="/logos/yazı.png" 
+                  alt="Momento" 
+                  className="h-6"
+                />
               </div>
               <p className="text-gray-400">Etkinliklerinizi unutulmaz kılın</p>
             </div>
